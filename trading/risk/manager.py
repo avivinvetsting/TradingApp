@@ -1,6 +1,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional
+from datetime import datetime, timezone
+from typing import Callable, Optional
+import pandas as pd
 
 import pandas_market_calendars as mcal
 
@@ -17,39 +19,63 @@ class RiskParams:
 
 
 class BasicRiskManager(RiskManager):
-    """Simple risk checks: session open, per-symbol notional cap, gross exposure cap.
+    """Risk checks: hours gate, per-symbol notional cap, gross exposure cap, daily loss cap.
 
-    For MVP, we assume zero current exposure and rely on portfolio wiring later for accurate exposure.
+    Gross exposure and daily loss are provided via callables to avoid tight coupling.
     """
 
-    def __init__(self, params: RiskParams) -> None:
+    def __init__(
+        self,
+        params: RiskParams,
+        *,
+        get_gross_exposure: Optional[Callable[[], float]] = None,
+        get_daily_realized_pnl: Optional[Callable[[], float]] = None,
+    ) -> None:
         self.params = params
-        self.calendar = mcal.get_calendar(params.market_calendar)
+        self._get_gross_exposure = get_gross_exposure
+        self._get_daily_realized_pnl = get_daily_realized_pnl
+        self._calendar = mcal.get_calendar(params.market_calendar)
 
     def validate(self, proposed_order: Order) -> Optional[Order]:
-        # Market-hours gate
-        if not self._is_session_open():
+        now = datetime.now(timezone.utc)
+        if not self._is_session_open(now):
             return None
 
-        # Notional per symbol
+        # Per-symbol notional cap (limit orders)
         notional = 0.0
-        if proposed_order.limit_price is not None and proposed_order.type == "limit":
+        if proposed_order.type == "limit" and proposed_order.limit_price is not None:
             notional = proposed_order.limit_price * proposed_order.quantity
-        # For market orders, caller should provide an estimate; we conservatively reject if zero
-        if proposed_order.type == "market":
-            # Cannot evaluate notional without mark; allow for now
-            pass
-        if (
-            self.params.per_symbol_notional_cap
-            and notional > 0
-            and notional > self.params.per_symbol_notional_cap
-        ):
-            return None
+            if (
+                self.params.per_symbol_notional_cap
+                and notional > self.params.per_symbol_notional_cap
+            ):
+                return None
 
-        # Gross exposure cap would require current exposure; for MVP, skip here
+        # Daily loss cap
+        if self.params.daily_loss_cap is not None and self._get_daily_realized_pnl is not None:
+            try:
+                daily_realized = float(self._get_daily_realized_pnl())
+                if daily_realized < -abs(self.params.daily_loss_cap):
+                    return None
+            except Exception:
+                pass
+
+        # Gross exposure cap
+        if self.params.max_gross_exposure and self._get_gross_exposure is not None and notional > 0:
+            try:
+                gross = float(self._get_gross_exposure())
+                if gross + abs(notional) > self.params.max_gross_exposure:
+                    return None
+            except Exception:
+                pass
+
         return proposed_order
 
-    def _is_session_open(self) -> bool:
-        # Use calendar schedule for current day
-        # For MVP, simply return True; advanced gating will be added when wiring live
-        return True
+    def _is_session_open(self, now: datetime) -> bool:
+        day = pd.Timestamp(now).tz_convert("UTC").normalize()
+        sched = self._calendar.schedule(start_date=day.date(), end_date=day.date())
+        if sched.empty:
+            return False
+        market_open = sched.iloc[0]["market_open"].tz_convert("UTC")
+        market_close = sched.iloc[0]["market_close"].tz_convert("UTC")
+        return market_open <= pd.Timestamp(now) <= market_close
