@@ -40,7 +40,7 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [x] Reporting: HTML via Plotly+Jinja (equity, drawdown); metrics included in summary.json
 - [x] Metrics: compute CAGR/Sharpe/Sortino/maxDD/Calmar/hit-rate; included in summary.json
 - [x] Acceptance: SPY/QQQ backtest produces metrics + HTML; artifacts under `runs/{run_id}/`
-- [ ] Tests: unit (portfolio/costs/risk/CA); integration (fixture backtest); regression (summary snapshot)
+- [x] Tests: unit (portfolio/costs/risk/CA); integration (fixture backtest); regression (summary snapshot)
 - [ ] Observability: counters for bars/orders; latency timers
 
 ---
