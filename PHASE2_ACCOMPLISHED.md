@@ -85,9 +85,9 @@ snap = pf.snapshot(marks={"SPY": 101.0})
   - `BasicRiskManager.validate(proposed_order: Order) -> Optional[Order]`
   - Params: `RiskParams(max_gross_exposure, per_symbol_notional_cap, market_calendar="XNYS", daily_loss_cap=None)`
 - Behavior:
-  - Session gate (stubbed True for now; will integrate market calendar when live wiring lands).
+  - Session gate using `pandas_market_calendars` (XNYS by default) to ensure orders only pass during trading hours.
   - Per-symbol notional cap for limit orders.
-  - Gross exposure and daily loss cap to be enforced once portfolio exposure is wired in the loop.
+  - Optional gross exposure and daily loss caps via callables (to avoid tight coupling; wiring later).
 - Tests: `tests/test_risk_manager.py` checks accept/reject under notional caps.
 
 Usage example
@@ -103,11 +103,35 @@ approved = rm.validate(order)
 ---
 
 ### Status and Next Steps
-- Checklist updated in `DETAILED_PHASE_PLAN.md` (Data, CA, Portfolio, Execution/Costs, Risk, Backtest Engine, Metrics checked).
+- Checklist updated in `DETAILED_PHASE_PLAN.md` (Data, CA, Portfolio, Execution/Costs, Risk, Backtest Engine, Metrics, Observability checked).
 - Backtest runner added to CLI: `python -m trading backtest --config config.yaml --run-id <id>` (auto-downloads missing caches).
-- Next: HTML reporting (Plotly + Jinja) to visualize equity curve, drawdowns, and orders.
+- HTML reporting done: equity and drawdown plots, metrics table; output at `runs/<run_id>/reports/report.html`.
+- Summary artifacts now include `git_sha` and `config_hash` (SHA-256 of YAML contents) for reproducibility.
 
 ---
+
+### 2.6 Backtest Engine & Artifacts
+- Purpose: Deterministic bar-close loop over symbols; record bars, orders, fills, equity; compute metrics; write summary.
+- Location: `trading/backtest/engine.py`
+- Artifacts under `runs/<run_id>/`:
+  - `bars.parquet`, `orders.parquet`, `fills.parquet`, `equity.parquet`
+  - `summary.json` with keys: `run_id`, `symbols`, `interval`, `git_sha`, `config_hash`, `slippage_bps`, `commission_fixed`, `metrics`, `observability`
+  - `reports/report.html` (Plotly + Jinja)
+
+### 2.7 Metrics
+- Purpose: Compute CAGR, Sharpe, Sortino, max drawdown, Calmar, hit rate from equity.
+- Location: `trading/backtest/metrics.py`
+- Embedded in `summary.json.metrics`.
+
+### 2.8 Reporting (HTML)
+- Purpose: Provide quick visual inspection of equity and drawdowns with metrics table.
+- Location: `trading/reporting/report.py` and template `report.html.j2`
+- Output: `runs/<run_id>/reports/report.html`
+
+### 2.9 Observability (Backtest)
+- Purpose: Make runs measurable and comparable.
+- Counters: bars, orders proposed/approved, fills.
+- Timers: per-bar loop latency stats (avg/max/p50/p95) under `summary.json.observability.timers.bar_loop_ms`.
 
 ### Commands reference
 ```bash
