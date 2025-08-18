@@ -17,8 +17,8 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [x] Logging helper and run-id propagation pattern
 - [x] Tooling: `ruff`, `black`, `mypy`, `pytest`, pre-commit, GitHub Actions CI (workflow added)
 - [x] Example strategies registered: `momentum`, `ma_crossover` (placeholders)
-- [ ] Acceptance: CLI help shows; config resolves; registry lists; CI green; reproducible local runs
-- [ ] Tests: unit for config/registry/models; lint/type gates pass
+- [x] Acceptance: CLI help shows; config resolves; registry lists; CI green; reproducible local runs
+- [x] Tests: unit for config/registry/models; lint/type gates pass
 
 ---
 
@@ -28,21 +28,20 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [x] Data adapters: IB historical pull (batched) + local Parquet cache; CSV/Parquet loader
 - [x] Corporate actions adjuster (splits); dividends pending; docs on limitations
 - [x] Split adjuster implemented for prices/volume; tests added
-- [ ] Portfolio accounting: cash, positions, unrealized/realized PnL, equity curve
+- [x] Portfolio accounting: cash, positions, unrealized/realized PnL, equity curve
 - [x] Portfolio accounting: cash, positions, realized/unrealized PnL; snapshot tests
-- [ ] Costs: fixed commission; slippage bps
+- [x] Costs: fixed commission; slippage bps
 - [x] Costs: slippage bps simulated; fixed commission added to config
-- [ ] Execution simulator: market/limit; optional partial fills
+- [x] Execution simulator: market/limit; optional partial fills
 - [x] Execution simulator: market/limit with participation cap; tests
-- [ ] Risk manager: per-symbol notional cap; max gross exposure; market-hours gate; daily kill-switch
-- [x] Risk manager: per-symbol notional cap (limit orders); session gate stub; tests
-- [ ] Backtest engine: bar-close evaluation; ledgers (bars/orders/fills/equity); JSON summary (git SHA + config hash)
+ - [x] Risk manager: per-symbol notional cap; max gross exposure; market-hours gate; daily kill-switch
+ - [x] Backtest engine: bar-close evaluation; ledgers (bars/orders/fills/equity); JSON summary (git SHA + config hash)
 - [x] Backtest engine: bar-close evaluation; writes orders/fills/equity parquet + JSON summary
- - [x] Reporting: HTML via Plotly+Jinja (equity, drawdown); metrics included in summary.json
- - [x] Metrics: compute CAGR/Sharpe/Sortino/maxDD/Calmar/hit-rate; included in summary.json
- - [x] Acceptance: SPY/QQQ backtest produces metrics + HTML; artifacts under `runs/{run_id}/`
-- [ ] Tests: unit (portfolio/costs/risk/CA); integration (fixture backtest); regression (summary snapshot)
-- [ ] Observability: counters for bars/orders; latency timers
+- [x] Reporting: HTML via Plotly+Jinja (equity, drawdown); metrics included in summary.json
+- [x] Metrics: compute CAGR/Sharpe/Sortino/maxDD/Calmar/hit-rate; included in summary.json
+- [x] Acceptance: SPY/QQQ backtest produces metrics + HTML; artifacts under `runs/{run_id}/`
+- [x] Tests: unit (portfolio/costs/risk/CA); integration (fixture backtest); regression (summary snapshot)
+- [x] Observability: counters for bars/orders; latency timers
 
 ---
 
@@ -88,12 +87,14 @@ Use these checklists to track progress. Check items as you complete them. Captur
 ## Cross-Phase Checklists
 
 Start-of-Phase
+
 - [ ] Decision Log updated; open questions reviewed
 - [ ] CI green on `main`; working branch created
 - [ ] Risks and NFRs re-evaluated for the phase
 - [ ] Confirm: timeframe (start daily; add 1h/1m later), logging (text; JSON optional), run-id (UUIDv4; CLI override), retention policy via `trade ops prune`
 
 End-of-Phase
+
 - [ ] Acceptance criteria met; DoD satisfied
 - [ ] Artifacts archived under `runs/{run_id}/`
 - [ ] README and `PROJECT_PLAN.md` updated
@@ -102,6 +103,7 @@ End-of-Phase
 ---
 
 ## Notes & Decisions (current)
+
 - Timeframe: start daily; plan to add 1h/1m later
 - Logging format: default text; JSON optional later
 - Run-id: default UUIDv4; CLI accepts `--run-id`

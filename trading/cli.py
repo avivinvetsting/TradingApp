@@ -1,5 +1,7 @@
 from typing import Optional
 import uuid
+from pathlib import Path
+import hashlib
 import typer
 
 app = typer.Typer(help="Trading CLI")
@@ -32,6 +34,7 @@ def backtest(
         interval=interval,
         cache_dir=str(settings.data.cache_dir),
         run_id=run,
+        config_hash=hashlib.sha256(Path(config).read_bytes()).hexdigest()[:16],
         slippage_bps=settings.execution.slippage_bps,
         commission_fixed=settings.execution.commission_fixed,
         per_symbol_notional_cap=settings.risk.per_symbol_notional_cap,
