@@ -34,8 +34,8 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [x] Costs: slippage bps simulated; fixed commission added to config
 - [x] Execution simulator: market/limit; optional partial fills
 - [x] Execution simulator: market/limit with participation cap; tests
- - [x] Risk manager: per-symbol notional cap; max gross exposure; market-hours gate; daily kill-switch
- - [x] Backtest engine: bar-close evaluation; ledgers (bars/orders/fills/equity); JSON summary (git SHA + config hash)
+- [x] Risk manager: per-symbol notional cap; max gross exposure; market-hours gate; daily kill-switch
+- [x] Backtest engine: bar-close evaluation; ledgers (bars/orders/fills/equity); JSON summary (git SHA + config hash)
 - [x] Backtest engine: bar-close evaluation; writes orders/fills/equity parquet + JSON summary
 - [x] Reporting: HTML via Plotly+Jinja (equity, drawdown); metrics included in summary.json
 - [x] Metrics: compute CAGR/Sharpe/Sortino/maxDD/Calmar/hit-rate; included in summary.json

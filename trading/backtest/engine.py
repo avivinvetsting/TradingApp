@@ -30,12 +30,25 @@ class BacktestConfig:
     commission_fixed: float = 1.0
     per_symbol_notional_cap: float = 25000.0
     config_hash: Optional[str] = None
+    heartbeat_every: int = 100
 
 
 class BacktestEngine:
-    def __init__(self, strategy_factory: Callable[[str], Strategy], config: BacktestConfig) -> None:
+    def __init__(
+        self,
+        strategy_factory: Callable[[str], Strategy],
+        config: BacktestConfig,
+        logger: Optional[object] = None,
+    ) -> None:
         self.strategy_factory: Callable[[str], Strategy] = strategy_factory
         self.config = config
+        # Lazy import to avoid forcing logging at import time
+        try:
+            # structlog logger preferred
+            self._logger = logger or __import__("structlog").get_logger("trading.backtest")
+        except Exception:
+            import logging as _logging
+            self._logger = logger or _logging.getLogger("trading.backtest")
         self.sim = SimpleExecutionSimulator(
             slippage_bps=config.slippage_bps, fill_policy=FillPolicy(None)
         )
@@ -81,7 +94,8 @@ class BacktestEngine:
         # Merge all timestamps across symbols
         all_ts = sorted(set(ts for df in series.values() for ts in df["end"].tolist()))
 
-        for ts in all_ts:
+        heartbeat_every = max(1, int(self.config.heartbeat_every))
+        for idx, ts in enumerate(all_ts):
             loop_start = time.perf_counter()
             marks: Dict[str, float] = {}
             for sym, df in series.items():
@@ -173,6 +187,29 @@ class BacktestEngine:
             )
             loop_end = time.perf_counter()
             self._bar_loop_ms.append((loop_end - loop_start) * 1000.0)
+
+            # Emit a simple heartbeat every N bars
+            if idx % heartbeat_every == 0:
+                try:
+                    # Support both structlog and stdlib
+                    try:
+                        self._logger.info(
+                            "heartbeat",
+                            ts=snap.ts.isoformat(),
+                            approved_orders=self._orders_approved_count,
+                            bars_processed=idx + 1,
+                        )
+                    except TypeError:
+                        self._logger.info(
+                            "heartbeat",
+                            extra={
+                                "ts": snap.ts.isoformat(),
+                                "approved_orders": self._orders_approved_count,
+                                "bars_processed": idx + 1,
+                            },
+                        )
+                except Exception:
+                    pass
 
         # Write artifacts
         self._write_artifacts(out_base)

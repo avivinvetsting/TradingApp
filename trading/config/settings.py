@@ -2,7 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 import yaml  # type: ignore[import-untyped]
 
@@ -26,6 +26,20 @@ class RiskConfig(BaseModel):  # type: ignore[misc]
     market_calendar: str = "XNYS"
     daily_loss_cap: Optional[float] = None
 
+    @field_validator("max_gross_exposure", "per_symbol_notional_cap")
+    @classmethod
+    def _nonnegative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("risk caps must be nonnegative")
+        return v
+    
+    @field_validator("daily_loss_cap")
+    @classmethod
+    def _nonnegative_or_none(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and v < 0:
+            raise ValueError("daily_loss_cap must be nonnegative if set")
+        return v
+
 
 class ExecutionConfig(BaseModel):  # type: ignore[misc]
     default_order_type: str = "limit"
@@ -46,6 +60,16 @@ class AppSettings(BaseSettings):  # type: ignore[misc]
     risk: RiskConfig
     execution: ExecutionConfig
     strategy: StrategyConfig
+
+    @field_validator("timeframe")
+    @classmethod
+    def _normalize_timeframe(cls, v: str) -> str:
+        norm = v.strip().lower()
+        aliases = {"1day": "1d", "daily": "1d", "60m": "1h"}
+        norm = aliases.get(norm, norm)
+        if norm not in {"1d", "1h", "1m"}:
+            raise ValueError("timeframe must be one of: 1d, 1h, 1m")
+        return norm
 
 
 def load_settings(path: str | Path) -> AppSettings:

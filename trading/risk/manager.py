@@ -7,6 +7,7 @@ import pandas as pd
 import pandas_market_calendars as mcal
 
 from trading.core.contracts import RiskManager
+import logging
 from trading.core.models import Order
 
 
@@ -60,8 +61,11 @@ class BasicRiskManager(RiskManager):
                 daily_realized = float(self._get_daily_realized_pnl())
                 if daily_realized < -abs(self.params.daily_loss_cap):
                     return None
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.getLogger(__name__).warning(
+                    "daily loss cap check failed; allowing order",
+                    extra={"error": str(exc)},
+                )
 
         # Gross exposure cap
         if self.params.max_gross_exposure and self._get_gross_exposure is not None and notional > 0:
@@ -69,8 +73,11 @@ class BasicRiskManager(RiskManager):
                 gross = float(self._get_gross_exposure())
                 if gross + abs(notional) > self.params.max_gross_exposure:
                     return None
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.getLogger(__name__).warning(
+                    "gross exposure check failed; allowing order",
+                    extra={"error": str(exc)},
+                )
 
         return proposed_order
 

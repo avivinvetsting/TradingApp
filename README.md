@@ -16,6 +16,22 @@ Quick start
   python -m trading --help
   ```
 
+Development
+
+- One-shot CI locally
+  ```bash
+  make ci
+  ```
+- Install pre-commit hooks (recommended)
+  ```bash
+  make precommit
+  pre-commit run --all-files
+  ```
+
+Phase 3 Runbook
+
+See `PHASE3_RUNBOOK.md` for TWS/Gateway settings, env vars, and start/stop/recovery steps.
+
 Run a backtest (auto-downloads cache if missing)
 ```bash
 python -m trading backtest --config config.example.yaml --run-id test-run
