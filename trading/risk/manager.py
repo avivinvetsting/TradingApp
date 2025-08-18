@@ -30,15 +30,18 @@ class BasicRiskManager(RiskManager):
         *,
         get_gross_exposure: Optional[Callable[[], float]] = None,
         get_daily_realized_pnl: Optional[Callable[[], float]] = None,
+        enable_session_gate: bool = True,
     ) -> None:
         self.params = params
         self._get_gross_exposure = get_gross_exposure
         self._get_daily_realized_pnl = get_daily_realized_pnl
         self._calendar = mcal.get_calendar(params.market_calendar)
+        # In backtests and unit tests, wall-clock session gating should be disabled
+        self._enable_session_gate = enable_session_gate
 
     def validate(self, proposed_order: Order) -> Optional[Order]:
         now = datetime.now(timezone.utc)
-        if not self._is_session_open(now):
+        if self._enable_session_gate and not self._is_session_open(now):
             return None
 
         # Per-symbol notional cap (limit orders)

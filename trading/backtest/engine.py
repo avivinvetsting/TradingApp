@@ -40,10 +40,12 @@ class BacktestEngine:
             slippage_bps=config.slippage_bps, fill_policy=FillPolicy(None)
         )
         self.portfolio = PortfolioState(cash=100000.0)
+        # Disable wall-clock session gate in backtests for determinism
         self.risk = BasicRiskManager(
             RiskParams(
                 max_gross_exposure=1e9, per_symbol_notional_cap=config.per_symbol_notional_cap
-            )
+            ),
+            enable_session_gate=False,
         )
         self._orders: list[dict[str, Any]] = []
         self._fills: list[dict[str, Any]] = []
