@@ -1,0 +1,24 @@
+run_id: ${RUN_ID}
+timeframe: "1D"
+symbols: ["SPY", "QQQ"]
+
+data:
+  source: "ib"
+  cache_dir: "./data/cache"
+  ib_host: "127.0.0.1"
+  ib_port: 7497
+  ib_client_id: 42
+
+risk:
+  max_gross_exposure: 100000
+  per_symbol_notional_cap: 25000
+
+execution:
+  default_order_type: "limit"
+  slippage_bps: 1
+
+strategy:
+  name: "ma_crossover"
+  params:
+    fast: 20
+    slow: 50
