@@ -80,3 +80,14 @@ def test_summary_snapshot_no_trades(tmp_path: Path) -> None:
     ]:
         assert key in m
         assert abs(float(m[key])) < 1e-12
+
+    # Observability section should include counters and timer stats
+    obs = j.get("observability") or {}
+    assert "counters" in obs and "timers" in obs
+    ctrs = obs["counters"]
+    assert ctrs["bars"] >= 2
+    assert ctrs["orders_proposed"] >= 0
+    assert ctrs["orders_approved"] >= 0
+    assert ctrs["fills"] >= 0
+    timers = obs["timers"]["bar_loop_ms"]
+    assert "count" in timers and "avg" in timers and "p50" in timers and "p95" in timers

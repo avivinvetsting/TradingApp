@@ -4,6 +4,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 import json
+import hashlib
+import subprocess
+import time
 
 import pandas as pd
 
@@ -26,6 +29,7 @@ class BacktestConfig:
     slippage_bps: int = 1
     commission_fixed: float = 1.0
     per_symbol_notional_cap: float = 25000.0
+    config_hash: Optional[str] = None
 
 
 class BacktestEngine:
@@ -44,6 +48,10 @@ class BacktestEngine:
         self._orders: list[dict[str, Any]] = []
         self._fills: list[dict[str, Any]] = []
         self._equity: list[dict[str, Any]] = []
+        self._bars: list[dict[str, Any]] = []
+        # Observability accumulators
+        self._orders_approved_count: int = 0
+        self._bar_loop_ms: list[float] = []
 
     def run(self) -> None:
         out_base = Path(self.config.out_dir) / self.config.run_id
@@ -72,6 +80,7 @@ class BacktestEngine:
         all_ts = sorted(set(ts for df in series.values() for ts in df["end"].tolist()))
 
         for ts in all_ts:
+            loop_start = time.perf_counter()
             marks: Dict[str, float] = {}
             for sym, df in series.items():
                 # Get row at timestamp if present
@@ -88,6 +97,18 @@ class BacktestEngine:
                     close=float(row["close"]),
                     volume=int(row["volume"]),
                 )
+                # Record bar
+                self._bars.append(
+                    {
+                        "ts": bar.end.isoformat(),
+                        "symbol": sym,
+                        "open": bar.open,
+                        "high": bar.high,
+                        "low": bar.low,
+                        "close": bar.close,
+                        "volume": bar.volume,
+                    }
+                )
                 marks[sym] = bar.close
 
                 # Strategy decision
@@ -99,6 +120,8 @@ class BacktestEngine:
                 approved = self.risk.validate(order)
                 if approved is None:
                     continue
+                # Count orders that passed risk checks
+                self._orders_approved_count += 1
 
                 # Simulate fill
                 fill = self.sim.simulate_fill(
@@ -146,6 +169,8 @@ class BacktestEngine:
                     "realized_pnl": snap.realized_pnl,
                 }
             )
+            loop_end = time.perf_counter()
+            self._bar_loop_ms.append((loop_end - loop_start) * 1000.0)
 
         # Write artifacts
         self._write_artifacts(out_base)
@@ -160,6 +185,7 @@ class BacktestEngine:
             table = pa.Table.from_pylist(records)
             pq.write_table(table, out_base / f"{name}.parquet")
 
+        write_parquet(self._bars, "bars")
         write_parquet(self._orders, "orders")
         write_parquet(self._fills, "fills")
         write_parquet(self._equity, "equity")
@@ -177,10 +203,55 @@ class BacktestEngine:
         except Exception:
             metrics = None
 
+        # Try to include git SHA
+        try:
+            git_sha = (
+                subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True)
+                .stdout.strip()
+                or None
+            )
+        except Exception:
+            git_sha = None
+
+        # Observability: counters and timers
+        def _percentiles(values: list[float], ps: list[float]) -> Dict[str, float]:
+            if not values:
+                return {f"p{int(p*100)}": 0.0 for p in ps}
+            sorted_vals = sorted(values)
+            n = len(sorted_vals)
+            results: Dict[str, float] = {}
+            for p in ps:
+                if n == 1:
+                    q = sorted_vals[0]
+                else:
+                    k = max(0, min(n - 1, int(round(p * (n - 1)))))
+                    q = float(sorted_vals[k])
+                results[f"p{int(p*100)}"] = q
+            return results
+
+        counters = {
+            "bars": len(self._bars),
+            "orders_proposed": len(self._orders),
+            "orders_approved": self._orders_approved_count,
+            "fills": len(self._fills),
+        }
+        timer_stats = (
+            {
+                "count": len(self._bar_loop_ms),
+                "avg": (sum(self._bar_loop_ms) / len(self._bar_loop_ms)) if self._bar_loop_ms else 0.0,
+                "max": max(self._bar_loop_ms) if self._bar_loop_ms else 0.0,
+                **_percentiles(self._bar_loop_ms, [0.5, 0.95]),
+            }
+            if self._bar_loop_ms
+            else {"count": 0, "avg": 0.0, "max": 0.0, "p50": 0.0, "p95": 0.0}
+        )
+
         summary = {
             "run_id": self.config.run_id,
             "symbols": self.config.symbols,
             "interval": self.config.interval,
+            "git_sha": git_sha,
+            "config_hash": self.config.config_hash,
             "slippage_bps": self.config.slippage_bps,
             "commission_fixed": self.config.commission_fixed,
             "metrics": (
@@ -195,5 +266,11 @@ class BacktestEngine:
                     "hit_rate": metrics.hit_rate,
                 }
             ),
+            "observability": {
+                "counters": counters,
+                "timers": {
+                    "bar_loop_ms": timer_stats,
+                },
+            },
         }
         (out_base / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
