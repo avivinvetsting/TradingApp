@@ -1,11 +1,11 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 try:  # lazy import; only used in live mode
-    import ib_insync as ib  # type: ignore[import-not-found]
+    import ib_insync as ib
 except Exception:  # pragma: no cover
     ib = None  # type: ignore[assignment]
 
@@ -24,7 +24,7 @@ class IBConnectionManager:
                 "ib_insync not available; install dependencies or run in backtest mode"
             )
         self.cfg = config
-        self.ib: Any = ib.IB()
+        self.ib: Any = (cast(Any, ib)).IB()
 
     @retry(wait=wait_exponential(multiplier=1, min=1, max=30), stop=stop_after_attempt(5))
     async def connect_with_backoff(self) -> None:
