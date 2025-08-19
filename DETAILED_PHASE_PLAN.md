@@ -45,6 +45,36 @@ Use these checklists to track progress. Check items as you complete them. Captur
 
 ---
 
+## Chronological Task Checklist — Phases 1 & 2
+
+Use this ordered checklist to drive implementation. Check items in sequence.
+
+### Phase 1 — Hardening (end of Week 1)
+1. [x] Add `.pre-commit-config.yaml`; install hooks; run on CI
+2. [x] Update `CONTRIBUTING.md` with Developer Workflow (`make ci`, branching, reviews)
+3. [x] Ensure structured logging baseline (text default; JSON optional later)
+4. [x] Add CODEOWNERS and PR template
+5. [x] Pin critical dependencies in `pyproject.toml`; add Python version file
+
+### Phase 2 — Hardening (final week before Phase 3)
+1. [x] CI coverage gate ≥ 80% and weekly scheduled CI run
+2. [x] Add risk tests: gross exposure and daily_loss_cap
+3. [x] Add CLI backtest smoke test that writes artifacts to a tmp runs dir
+4. [x] Enforce Parquet schema/dtype validation in loaders (UTC, numeric OHLCV)
+5. [x] Add `--json-logs` flag and emit heartbeat logs in backtest loop
+6. [x] Add Make targets: `make ci`, `make report RUN=<id>`, `make prune-runs`
+7. [x] Add `.env.example`, `.python-version`, Dependabot; update README with runbook link
+8. [ ] Replace global timestamp set with k‑way merge for bar alignment (perf)
+9. [ ] Inject `Clock.now_utc()` and remove ad‑hoc `datetime.now` for determinism
+10. [ ] Record bars/sec and per‑symbol missing‑bar counters in `summary.json` and report
+11. [ ] Add turnover, time‑in‑market, and peak gross exposure to metrics/report
+12. [ ] Add property‑based tests (portfolio invariants; simulator edge cases)
+13. [ ] Add `make bench-backtest` with SLA (< 60s SPY/QQQ daily)
+
+Note: Items 1–7 are implemented; items 8–13 are optional polish to schedule before Phase 3 if time permits.
+
+---
+
 ## Phase 3 — Live Data & Paper Account Integration (Week 4)
 
 - [ ] Objective: reliable paper connectivity; bars; orders; reconciliation (paper only)
