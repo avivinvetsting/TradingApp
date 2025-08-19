@@ -91,8 +91,30 @@ class BacktestEngine:
             sym: self.strategy_factory(sym) for sym in self.config.symbols
         }
 
-        # Merge all timestamps across symbols
-        all_ts = sorted(set(ts for df in series.values() for ts in df["end"].tolist()))
+        # Merge all timestamps across symbols using k-way merge to reduce memory
+        import heapq
+        iters: Dict[str, Any] = {sym: iter(df["end"].tolist()) for sym, df in series.items()}
+        heap: list[tuple[datetime, str]] = []
+        for sym, it in iters.items():
+            try:
+                first = next(it)
+                heap.append((first, sym))
+            except StopIteration:
+                continue
+        heapq.heapify(heap)
+        all_ts: list[datetime] = []
+        last_emitted: Optional[datetime] = None
+        while heap:
+            ts, sym = heapq.heappop(heap)
+            if last_emitted is None or ts != last_emitted:
+                all_ts.append(ts)
+                last_emitted = ts
+            # advance iterator for sym
+            try:
+                nxt = next(iters[sym])
+                heapq.heappush(heap, (nxt, sym))
+            except StopIteration:
+                pass
 
         heartbeat_every = max(1, int(self.config.heartbeat_every))
         for idx, ts in enumerate(all_ts):

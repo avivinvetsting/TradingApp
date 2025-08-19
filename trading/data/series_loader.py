@@ -26,4 +26,10 @@ def load_parquet_series(base_dir: str | Path, symbol: str, interval: str) -> pd.
     if df[["open", "high", "low", "close", "volume"]].isnull().any().any():
         raise ValueError(f"Parquet data has invalid dtypes or NaNs for {path}")
     df = df.sort_values("end").reset_index(drop=True)
+    # Enforce strictly increasing timestamps (no duplicates)
+    if df["end"].duplicated().any():
+        dupes = df[df["end"].duplicated()]["end"].astype(str).head(3).tolist()
+        raise ValueError(
+            f"Parquet data has duplicate timestamps for {symbol} {interval}; examples: {dupes}"
+        )
     return df[["symbol", "end", "open", "high", "low", "close", "volume"]]

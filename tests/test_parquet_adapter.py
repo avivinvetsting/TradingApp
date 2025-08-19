@@ -84,3 +84,15 @@ def test_adapter_handles_end_as_string(tmp_path: Path) -> None:
     assert bar is not None
     assert bar.symbol == "QQQ"
     assert bar.end.isoformat().startswith("2024-01-03")
+
+
+def test_series_loader_rejects_duplicate_timestamps(tmp_path: Path) -> None:
+    base = tmp_path
+    file = base / "SPY_1d.parquet"
+    rows = [
+        {"symbol": "SPY", "end": "2024-01-03T21:00:00Z", "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "volume": 1000},
+        {"symbol": "SPY", "end": "2024-01-03T21:00:00Z", "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "volume": 1000},
+    ]
+    _write_parquet(file, rows)
+    with pytest.raises(Exception):
+        load_parquet_series(base, "SPY", "1d")

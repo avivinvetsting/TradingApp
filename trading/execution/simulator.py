@@ -34,7 +34,14 @@ class SimpleExecutionSimulator(ExecutionEngine):
         return None
 
     def simulate_fill(
-        self, *, order: Order, bar_close: float, bar_high: float, bar_low: float, bar_volume: int
+        self,
+        *,
+        order: Order,
+        bar_close: float,
+        bar_high: float,
+        bar_low: float,
+        bar_volume: int,
+        fill_ts: Optional[datetime] = None,
     ) -> Optional[Fill]:
         # Determine executable price
         if order.type == "market":
@@ -65,7 +72,7 @@ class SimpleExecutionSimulator(ExecutionEngine):
 
         return Fill(
             order_local_id=order.local_id,
-            ts=datetime.now(timezone.utc),
+            ts=fill_ts or datetime.now(timezone.utc),
             qty=qty,
             price=exec_price,
             commission=0.0,
