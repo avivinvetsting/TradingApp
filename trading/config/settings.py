@@ -7,12 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 import yaml  # type: ignore[import-untyped]
 
 
-class StrategyConfig(BaseModel):  # type: ignore[misc]
+class StrategyConfig(BaseModel):
     name: str
     params: Dict[str, Any]
 
 
-class DataConfig(BaseModel):  # type: ignore[misc]
+class DataConfig(BaseModel):
     source: str
     cache_dir: Path
     ib_host: Optional[str] = None
@@ -20,7 +20,7 @@ class DataConfig(BaseModel):  # type: ignore[misc]
     ib_client_id: Optional[int] = None
 
 
-class RiskConfig(BaseModel):  # type: ignore[misc]
+class RiskConfig(BaseModel):
     max_gross_exposure: float
     per_symbol_notional_cap: float
     market_calendar: str = "XNYS"
@@ -41,13 +41,13 @@ class RiskConfig(BaseModel):  # type: ignore[misc]
         return v
 
 
-class ExecutionConfig(BaseModel):  # type: ignore[misc]
+class ExecutionConfig(BaseModel):
     default_order_type: str = "limit"
     slippage_bps: int = 1
     commission_fixed: float = 1.0
 
 
-class AppSettings(BaseSettings):  # type: ignore[misc]
+class AppSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="TRADE_", env_nested_delimiter="__", extra="ignore"
     )
@@ -75,4 +75,4 @@ class AppSettings(BaseSettings):  # type: ignore[misc]
 def load_settings(path: str | Path) -> AppSettings:
     with open(path, "r", encoding="utf-8") as f:
         raw: Dict[str, Any] = yaml.safe_load(f)
-    return AppSettings.model_validate(raw)  # type: ignore[no-any-return]
+    return AppSettings.model_validate(raw)

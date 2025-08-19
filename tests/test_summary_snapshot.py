@@ -11,7 +11,7 @@ from trading.core.models import Bar
 
 
 class NoopStrategy(Strategy):
-    def on_bar(self, bar: Bar):
+    def on_bar(self, bar: Bar) -> None:
         return None
 
 

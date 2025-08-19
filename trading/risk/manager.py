@@ -88,4 +88,4 @@ class BasicRiskManager(RiskManager):
             return False
         market_open = sched.iloc[0]["market_open"].tz_convert("UTC")
         market_close = sched.iloc[0]["market_close"].tz_convert("UTC")
-        return market_open <= pd.Timestamp(now) <= market_close
+        return bool(market_open <= pd.Timestamp(now) <= market_close)

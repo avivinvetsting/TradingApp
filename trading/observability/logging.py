@@ -29,7 +29,7 @@ def configure_logging(level: int = logging.INFO, json: bool = False) -> None:
             structlog.processors.dict_tracebacks,
             structlog.processors.JSONRenderer(),
         ]
-        structlog.configure(  # type: ignore[arg-type]
+        structlog.configure(
             processors=processors,
             wrapper_class=structlog.make_filtering_bound_logger(level),
             cache_logger_on_first_use=True,
