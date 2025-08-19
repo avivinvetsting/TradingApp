@@ -2,7 +2,7 @@
 
 Use these checklists to track progress. Check items as you complete them. Capture one-way-door decisions in `PROJECT_PLAN.md`.
 
----
+______________________________________________________________________
 
 ## Phase 1 — Core Infrastructure & Foundation (Week 1)
 
@@ -20,7 +20,7 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [x] Acceptance: CLI help shows; config resolves; registry lists; CI green; reproducible local runs
 - [x] Tests: unit for config/registry/models; lint/type gates pass
 
----
+______________________________________________________________________
 
 ## Phase 2 — Backtester MVP (Weeks 2–3)
 
@@ -43,37 +43,39 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [x] Tests: unit (portfolio/costs/risk/CA); integration (fixture backtest); regression (summary snapshot)
 - [x] Observability: counters for bars/orders; latency timers
 
----
+______________________________________________________________________
 
 ## Chronological Task Checklist — Phases 1 & 2
 
 Use this ordered checklist to drive implementation. Check items in sequence.
 
 ### Phase 1 — Hardening (end of Week 1)
+
 1. [x] Add `.pre-commit-config.yaml`; install hooks; run on CI
-2. [x] Update `CONTRIBUTING.md` with Developer Workflow (`make ci`, branching, reviews)
-3. [x] Ensure structured logging baseline (text default; JSON optional later)
-4. [x] Add CODEOWNERS and PR template
-5. [x] Pin critical dependencies in `pyproject.toml`; add Python version file
+1. [x] Update `CONTRIBUTING.md` with Developer Workflow (`make ci`, branching, reviews)
+1. [x] Ensure structured logging baseline (text default; JSON optional later)
+1. [x] Add CODEOWNERS and PR template
+1. [x] Pin critical dependencies in `pyproject.toml`; add Python version file
 
 ### Phase 2 — Hardening (final week before Phase 3)
+
 1. [x] CI coverage gate ≥ 80% and weekly scheduled CI run
-2. [x] Add risk tests: gross exposure and daily_loss_cap
-3. [x] Add CLI backtest smoke test that writes artifacts to a tmp runs dir
-4. [x] Enforce Parquet schema/dtype validation in loaders (UTC, numeric OHLCV)
-5. [x] Add `--json-logs` flag and emit heartbeat logs in backtest loop
-6. [x] Add Make targets: `make ci`, `make report RUN=<id>`, `make prune-runs`
-7. [x] Add `.env.example`, `.python-version`, Dependabot; update README with runbook link
-8. [x] Replace global timestamp set with k‑way merge for bar alignment (perf)
-9. [x] Inject `Clock.now_utc()` and remove ad‑hoc `datetime.now` for determinism
-10. [x] Record bars/sec and per‑symbol missing‑bar counters in `summary.json` and report
-11. [x] Add turnover, time‑in‑market, and peak gross exposure to metrics/report
-12. [ ] Add property‑based tests (portfolio invariants; simulator edge cases)
-13. [ ] Add `make bench-backtest` with SLA (< 60s SPY/QQQ daily)
+1. [x] Add risk tests: gross exposure and daily_loss_cap
+1. [x] Add CLI backtest smoke test that writes artifacts to a tmp runs dir
+1. [x] Enforce Parquet schema/dtype validation in loaders (UTC, numeric OHLCV)
+1. [x] Add `--json-logs` flag and emit heartbeat logs in backtest loop
+1. [x] Add Make targets: `make ci`, `make report RUN=<id>`, `make prune-runs`
+1. [x] Add `.env.example`, `.python-version`, Dependabot; update README with runbook link
+1. [x] Replace global timestamp set with k‑way merge for bar alignment (perf)
+1. [x] Inject `Clock.now_utc()` and remove ad‑hoc `datetime.now` for determinism
+1. [x] Record bars/sec and per‑symbol missing‑bar counters in `summary.json` and report
+1. [x] Add turnover, time‑in‑market, and peak gross exposure to metrics/report
+1. [ ] Add property‑based tests (portfolio invariants; simulator edge cases)
+1. [ ] Add `make bench-backtest` with SLA (< 60s SPY/QQQ daily)
 
 Note: Items 1–7 are implemented; items 8–13 are optional polish to schedule before Phase 3 if time permits.
 
----
+______________________________________________________________________
 
 ## Phase 3 — Live Data & Paper Account Integration (Week 4)
 
@@ -117,7 +119,7 @@ Note: Items 1–7 are implemented; items 8–13 are optional polish to schedule 
 - Export metrics via Prometheus/OpenTelemetry
 - Integrate alerting channel (e.g., Slack/Email) for failures or missed heartbeats
 
----
+______________________________________________________________________
 
 ## Phase 4 — First Paper Trade (Week 5)
 
@@ -128,7 +130,7 @@ Note: Items 1–7 are implemented; items 8–13 are optional polish to schedule 
 - [ ] Runbook: start/stop/recovery steps; restart idempotency verified
 - [ ] Acceptance: at least one filled paper order; accurate ledgers; EOD report; restart without duplication; no unhandled exceptions
 - [ ] Tests: dry-run smoke; live paper test with tiny size; latency SLO observed (bar close → submit ≤ 2s for 1m)
- - [ ] Quality gates: logs uniform (JSON/text), daily report completeness check, CI green incl. integration
+- [ ] Quality gates: logs uniform (JSON/text), daily report completeness check, CI green incl. integration
 
 ### Exit Checklist (end of Phase 4)
 
@@ -149,7 +151,7 @@ Note: Items 1–7 are implemented; items 8–13 are optional polish to schedule 
 - Additional order types (stop/stop‑limit) and policies (convert on timeout)
 - Daily loss cap per‑instrument; flat‑at‑close rule
 
----
+______________________________________________________________________
 
 ## Phase 5 — Stretch Enhancements & Hardening (Weeks 6–7, optional)
 
@@ -161,7 +163,7 @@ Note: Items 1–7 are implemented; items 8–13 are optional polish to schedule 
 - [ ] Acceptance: performance budgets met; toggles documented; risk policies effective
 - [ ] Tests: performance baselines; scenario tests for new order types/risk
 
----
+______________________________________________________________________
 
 ## Cross-Phase Checklists
 
@@ -214,10 +216,10 @@ End-of-Phase
 ### Incident Response (abridged)
 
 1. Detect: heartbeat lapse or error log
-2. Stabilize: auto backoff/retry; if persistently failing, stop loop safely
-3. Diagnose: check connectivity, IBKR status page, credentials/ports
-4. Recover: reconnect; reconcile open orders/positions; verify no duplication
-5. Record: capture logs, artifacts, and timeline in issue tracker
+1. Stabilize: auto backoff/retry; if persistently failing, stop loop safely
+1. Diagnose: check connectivity, IBKR status page, credentials/ports
+1. Recover: reconnect; reconcile open orders/positions; verify no duplication
+1. Record: capture logs, artifacts, and timeline in issue tracker
 
 ### Verification Matrix (tests and artifacts)
 
@@ -240,25 +242,27 @@ End-of-Phase
 ### Live Rollback Plan (paper)
 
 1. Stop the live loop safely on repeated failures
-2. Cancel open limit orders; verify broker state
-3. Reconcile positions; ensure no unintended exposure
-4. Archive logs and artifacts; file incident with timeline
+1. Cancel open limit orders; verify broker state
+1. Reconcile positions; ensure no unintended exposure
+1. Archive logs and artifacts; file incident with timeline
 
 ### Acceptance Test Procedures (ATPs)
 
 Phase 3 (Live paper connectivity)
+
 1. Prepare environment: `.env` set for IB host/port/client id; TWS/Gateway running with API enabled
-2. Dry‑run: `python -m trading live --config config.example.yaml --dry-run` → expect connect/disconnect success
-3. Live session (paper): start loop; verify heartbeats every 60s; observe counters increasing
-4. Induce disconnect (stop TWS for ~15s); restart TWS → system reconnects within ≤ 30s; subscriptions restored; no duplicate state
-5. Persistence: verify SQLite/Parquet snapshots created/readable; logs contain reconnect/backoff entries
+1. Dry‑run: `python -m trading live --config config.example.yaml --dry-run` → expect connect/disconnect success
+1. Live session (paper): start loop; verify heartbeats every 60s; observe counters increasing
+1. Induce disconnect (stop TWS for ~15s); restart TWS → system reconnects within ≤ 30s; subscriptions restored; no duplicate state
+1. Persistence: verify SQLite/Parquet snapshots created/readable; logs contain reconnect/backoff entries
 
 Phase 4 (First paper trade)
+
 1. Start live loop (paper) with tiny size policy; verify heartbeats and no errors
-2. Submit a small limit order (via strategy or manual trigger if available); verify order submission logged
-3. Verify fills ledger written; portfolio equity/PnL updated; commission applied
-4. Restart process; verify reconciliation (open orders/positions) and no duplication
-5. Generate EOD report; archive artifacts; validate completeness (orders, fills, PnL, positions)
+1. Submit a small limit order (via strategy or manual trigger if available); verify order submission logged
+1. Verify fills ledger written; portfolio equity/PnL updated; commission applied
+1. Restart process; verify reconciliation (open orders/positions) and no duplication
+1. Generate EOD report; archive artifacts; validate completeness (orders, fills, PnL, positions)
 
 ### Configuration Matrix (required keys)
 
@@ -283,7 +287,7 @@ Phase 4 (First paper trade)
 - Run ID: unique identifier (UUIDv4 or provided) for a run’s artifacts directory
 - Reconciliation: process of aligning local state with broker (orders, positions) after (re)connect
 
----
+______________________________________________________________________
 
 ## Notes & Decisions (current)
 
@@ -293,7 +297,7 @@ Phase 4 (First paper trade)
 - Retention: backtests short (e.g., 7–14 days), live runs longer (e.g., 90+ days); manage via `python -m trading ops prune`
 - TWS connection is required starting Phase 3 (live integration); not needed for Phase 1–2
 
----
+______________________________________________________________________
 
 ## Phase 2 — Accomplishments
 

@@ -33,6 +33,7 @@ Phase 3 Runbook
 See `PHASE3_RUNBOOK.md` for TWS/Gateway settings, env vars, and start/stop/recovery steps.
 
 Run a backtest (auto-downloads cache if missing)
+
 ```bash
 python -m trading backtest --config config.example.yaml --run-id test-run
 # Artifacts in runs/test-run/: equity.parquet, orders.parquet, fills.parquet, summary.json (with metrics)
