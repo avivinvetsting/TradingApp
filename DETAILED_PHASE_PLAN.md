@@ -47,7 +47,7 @@ Use these checklists to track progress. Check items as you complete them. Captur
 
 ## Phase 3 — Live Data & Paper Account Integration (Week 4)
 
-- [ ] Objective agreed: reliable paper connectivity; bars; orders; reconciliation
+- [ ] Objective: reliable paper connectivity; bars; orders; reconciliation (paper only)
 - [x] Connectivity manager: health checks (connect/disconnect/status) wired via CLI dry-run
 - [ ] Market data stream: `keepUpToDate` or ticks aggregated to completed bars (backtester-aligned)
 - [ ] Broker adapter (paper): submit/cancel market/limit; idempotent local↔broker order id mapping
@@ -56,7 +56,13 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [ ] CLI: `trade live --config` with `--dry-run`; supports `--json-logs` and `--log-level`; emits heartbeats
 - [ ] Acceptance: connects to paper; subscribes SPY/QQQ; can submit/cancel; recovers cleanly; heartbeat/backoff validated (tenacity retries with jitter); reconciliation verified after induced disconnect
 - [ ] Tests: integration (dry-run, forced reconnect with mocks); contract (idempotency, reconciliation); logging shape (JSON fields: run_id, symbol, timeframe)
-- [ ] Observability: optional `/healthz` or periodic heartbeat log; counters (bars/orders/latency); reconnect/failure counters
+- [ ] Observability: heartbeat log every 60s; counters (bars/orders/latency); reconnect/failure counters
+
+### Success Metrics (Phase 3)
+
+- [ ] Sustained live session ≥ 30 minutes without unhandled exceptions
+- [ ] Reconnect completes within ≤ 30 seconds under induced disconnect
+- [ ] ≥ 25 heartbeat messages logged (60s cadence) during 30‑minute session
 
 ### Go/No‑Go — Operational Readiness (before starting live session)
 
@@ -73,7 +79,13 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - No options/futures support (equities/ETFs only)
 - No sub‑second latencies; poll‑based loop is acceptable
 - No advanced order types beyond market/limit
-- No external dashboards (HTML report only)
+- No HTTP `/healthz` endpoint (use logs only); no external dashboards (HTML report only)
+
+### Future Improvements (Phase 3+)
+
+- Add lightweight HTTP `/healthz` endpoint with status JSON
+- Export metrics via Prometheus/OpenTelemetry
+- Integrate alerting channel (e.g., Slack/Email) for failures or missed heartbeats
 
 ---
 
@@ -100,6 +112,12 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - No production/real‑money trading yet
 - No options/futures
 - No portfolio margin or multi‑account orchestration
+
+### Future Improvements (Phase 4+)
+
+- Automated EOD report distribution (email/message)
+- Additional order types (stop/stop‑limit) and policies (convert on timeout)
+- Daily loss cap per‑instrument; flat‑at‑close rule
 
 ---
 
