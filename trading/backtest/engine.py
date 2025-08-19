@@ -17,6 +17,7 @@ from trading.portfolio.accounting import PortfolioState
 from trading.risk.manager import BasicRiskManager, RiskParams
 from trading.data.series_loader import load_parquet_series
 from trading.backtest.metrics import compute_from_equity
+from trading.util.clock import Clock, DEFAULT_CLOCK
 
 
 @dataclass
@@ -30,20 +31,37 @@ class BacktestConfig:
     commission_fixed: float = 1.0
     per_symbol_notional_cap: float = 25000.0
     config_hash: Optional[str] = None
+    heartbeat_every: int = 100
 
 
 class BacktestEngine:
-    def __init__(self, strategy_factory: Callable[[str], Strategy], config: BacktestConfig) -> None:
+    def __init__(
+        self,
+        strategy_factory: Callable[[str], Strategy],
+        config: BacktestConfig,
+        logger: Optional[object] = None,
+        clock: Clock = DEFAULT_CLOCK,
+    ) -> None:
         self.strategy_factory: Callable[[str], Strategy] = strategy_factory
         self.config = config
+        # Lazy import to avoid forcing logging at import time
+        try:
+            # structlog logger preferred
+            self._logger = logger or __import__("structlog").get_logger("trading.backtest")
+        except Exception:
+            import logging as _logging
+            self._logger = logger or _logging.getLogger("trading.backtest")
         self.sim = SimpleExecutionSimulator(
             slippage_bps=config.slippage_bps, fill_policy=FillPolicy(None)
         )
         self.portfolio = PortfolioState(cash=100000.0)
+        self._clock: Clock = clock
+        # Disable wall-clock session gate in backtests for determinism
         self.risk = BasicRiskManager(
             RiskParams(
                 max_gross_exposure=1e9, per_symbol_notional_cap=config.per_symbol_notional_cap
-            )
+            ),
+            enable_session_gate=False,
         )
         self._orders: list[dict[str, Any]] = []
         self._fills: list[dict[str, Any]] = []
@@ -52,6 +70,10 @@ class BacktestEngine:
         # Observability accumulators
         self._orders_approved_count: int = 0
         self._bar_loop_ms: list[float] = []
+        self._missing_bars_per_symbol: Dict[str, int] = {sym: 0 for sym in config.symbols}
+        self._turnover_notional: float = 0.0
+        self._time_in_market_bars: int = 0
+        self._peak_gross_exposure: float = 0.0
 
     def run(self) -> None:
         out_base = Path(self.config.out_dir) / self.config.run_id
@@ -76,16 +98,41 @@ class BacktestEngine:
             sym: self.strategy_factory(sym) for sym in self.config.symbols
         }
 
-        # Merge all timestamps across symbols
-        all_ts = sorted(set(ts for df in series.values() for ts in df["end"].tolist()))
+        # Merge all timestamps across symbols using k-way merge to reduce memory
+        import heapq
+        iters: Dict[str, Any] = {sym: iter(df["end"].tolist()) for sym, df in series.items()}
+        heap: list[tuple[datetime, str]] = []
+        for sym, it in iters.items():
+            try:
+                first = next(it)
+                heap.append((first, sym))
+            except StopIteration:
+                continue
+        heapq.heapify(heap)
+        all_ts: list[datetime] = []
+        last_emitted: Optional[datetime] = None
+        while heap:
+            ts, sym = heapq.heappop(heap)
+            if last_emitted is None or ts != last_emitted:
+                all_ts.append(ts)
+                last_emitted = ts
+            # advance iterator for sym
+            try:
+                nxt = next(iters[sym])
+                heapq.heappush(heap, (nxt, sym))
+            except StopIteration:
+                pass
 
-        for ts in all_ts:
+        heartbeat_every = max(1, int(self.config.heartbeat_every))
+        run_start = time.perf_counter()
+        for idx, ts in enumerate(all_ts):
             loop_start = time.perf_counter()
             marks: Dict[str, float] = {}
             for sym, df in series.items():
                 # Get row at timestamp if present
                 rows = df[df["end"] == ts]
                 if rows.empty:
+                    self._missing_bars_per_symbol[sym] = self._missing_bars_per_symbol.get(sym, 0) + 1
                     continue
                 row = rows.iloc[0]
                 bar = Bar(
@@ -130,6 +177,7 @@ class BacktestEngine:
                     bar_high=bar.high,
                     bar_low=bar.low,
                     bar_volume=bar.volume,
+                    fill_ts=bar.end,
                 )
                 # Record order regardless
                 self._orders.append(
@@ -156,9 +204,11 @@ class BacktestEngine:
                     self.portfolio.apply_fill(
                         fill, price=fill.price, symbol=sym, commission=self.config.commission_fixed
                     )
+                        # Turnover notional accumulates absolute traded notional
+                        self._turnover_notional += abs(float(fill.qty) * float(fill.price))
 
             snap = self.portfolio.snapshot(
-                as_of=ts if isinstance(ts, datetime) else datetime.now(timezone.utc), marks=marks
+                as_of=ts if isinstance(ts, datetime) else self._clock.now_utc(), marks=marks
             )
             self._equity.append(
                 {
@@ -169,8 +219,43 @@ class BacktestEngine:
                     "realized_pnl": snap.realized_pnl,
                 }
             )
+            # Time in market: any open position across symbols
+            if any(pos.qty != 0 for pos in self.portfolio.positions.values()):
+                self._time_in_market_bars += 1
+            # Peak gross exposure: sum absolute position market values
+            gross = 0.0
+            for sym, pos in self.portfolio.positions.items():
+                if pos.qty == 0:
+                    continue
+                price = marks.get(sym, pos.avg_price)
+                gross += abs(float(pos.qty) * float(price))
+            if gross > self._peak_gross_exposure:
+                self._peak_gross_exposure = gross
             loop_end = time.perf_counter()
             self._bar_loop_ms.append((loop_end - loop_start) * 1000.0)
+
+            # Emit a simple heartbeat every N bars
+            if idx % heartbeat_every == 0:
+                try:
+                    # Support both structlog and stdlib
+                    try:
+                        self._logger.info(
+                            "heartbeat",
+                            ts=snap.ts.isoformat(),
+                            approved_orders=self._orders_approved_count,
+                            bars_processed=idx + 1,
+                        )
+                    except TypeError:
+                        self._logger.info(
+                            "heartbeat",
+                            extra={
+                                "ts": snap.ts.isoformat(),
+                                "approved_orders": self._orders_approved_count,
+                                "bars_processed": idx + 1,
+                            },
+                        )
+                except Exception:
+                    pass
 
         # Write artifacts
         self._write_artifacts(out_base)
@@ -229,6 +314,9 @@ class BacktestEngine:
                 results[f"p{int(p*100)}"] = q
             return results
 
+        total_bars = len(self._bars)
+        total_secs = max(1e-9, time.perf_counter() - run_start)
+        bars_per_sec = float(total_bars) / float(total_secs)
         counters = {
             "bars": len(self._bars),
             "orders_proposed": len(self._orders),
@@ -241,9 +329,10 @@ class BacktestEngine:
                 "avg": (sum(self._bar_loop_ms) / len(self._bar_loop_ms)) if self._bar_loop_ms else 0.0,
                 "max": max(self._bar_loop_ms) if self._bar_loop_ms else 0.0,
                 **_percentiles(self._bar_loop_ms, [0.5, 0.95]),
+                "bars_per_sec": bars_per_sec,
             }
             if self._bar_loop_ms
-            else {"count": 0, "avg": 0.0, "max": 0.0, "p50": 0.0, "p95": 0.0}
+            else {"count": 0, "avg": 0.0, "max": 0.0, "p50": 0.0, "p95": 0.0, "bars_per_sec": 0.0}
         )
 
         summary = {
@@ -264,6 +353,12 @@ class BacktestEngine:
                     "max_drawdown": metrics.max_drawdown,
                     "calmar": metrics.calmar,
                     "hit_rate": metrics.hit_rate,
+                    # Additional
+                    "turnover_notional": self._turnover_notional,
+                    "time_in_market_ratio": (
+                        float(self._time_in_market_bars) / float(len(self._equity)) if self._equity else 0.0
+                    ),
+                    "peak_gross_exposure": self._peak_gross_exposure,
                 }
             ),
             "observability": {
@@ -271,6 +366,7 @@ class BacktestEngine:
                 "timers": {
                     "bar_loop_ms": timer_stats,
                 },
+                "missing_bars_per_symbol": self._missing_bars_per_symbol,
             },
         }
         (out_base / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")

@@ -16,6 +16,7 @@ risk:
 execution:
   default_order_type: "limit"
   slippage_bps: 1
+  commission_fixed: 1.0
 
 strategy:
   name: "ma_crossover"

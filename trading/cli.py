@@ -17,10 +17,16 @@ def plan() -> None:
 def backtest(
     config: str = typer.Option(..., "--config", help="Path to YAML config"),
     run_id: Optional[str] = typer.Option(None, "--run-id", help="Explicit run id; default uuid4"),
+    json_logs: bool = typer.Option(False, "--json-logs", help="Emit JSON logs to stdout"),
+    out_dir: Optional[str] = typer.Option(None, "--out-dir", help="Output base directory for run artifacts (default 'runs')"),
+    log_level: str = typer.Option("INFO", "--log-level", help="Logging level: DEBUG, INFO, WARNING, ERROR"),
+    no_autodownload: bool = typer.Option(False, "--no-autodownload", help="Disable auto-download of missing caches"),
+    heartbeat_every: int = typer.Option(100, "--heartbeat-every", help="Emit heartbeat every N bars"),
 ) -> None:
     """Run a backtest using config (simple runner for Parquet cache)."""
     from trading.config import load_settings
     from trading.backtest.engine import BacktestConfig, BacktestEngine
+    from trading.observability.logging import get_logger, configure_logging
 
     settings = load_settings(config)
     run = run_id or str(uuid.uuid4())
@@ -34,31 +40,38 @@ def backtest(
         interval=interval,
         cache_dir=str(settings.data.cache_dir),
         run_id=run,
+        out_dir=out_dir or "runs",
         config_hash=hashlib.sha256(Path(config).read_bytes()).hexdigest()[:16],
         slippage_bps=settings.execution.slippage_bps,
         commission_fixed=settings.execution.commission_fixed,
         per_symbol_notional_cap=settings.risk.per_symbol_notional_cap,
+        heartbeat_every=heartbeat_every,
     )
 
     # Auto-download missing caches into the configured cache_dir
-    try:
-        from pathlib import Path
-        from trading.data.fixtures import download_yf_bars
+    if not no_autodownload:
+        try:
+            from pathlib import Path
+            from trading.data.fixtures import download_yf_bars
 
-        cache_dir = Path(cfg.cache_dir)
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        missing: list[str] = []
-        for sym in cfg.symbols:
-            if not (cache_dir / f"{sym}_{cfg.interval}.parquet").exists():
-                missing.append(sym)
-        if missing:
-            typer.echo(f"Downloading missing data for: {' '.join(missing)} → {cache_dir}")
-            # Default to start of current year if no date provided in config; here we use a fixed recent start
-            download_yf_bars(
-                missing, interval=cfg.interval, start="2024-01-01", out_dir=str(cache_dir)
-            )
-    except Exception as exc:
-        typer.echo(f"Warning: auto-download skipped due to: {exc}")
+            cache_dir = Path(cfg.cache_dir)
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            missing: list[str] = []
+            for sym in cfg.symbols:
+                if not (cache_dir / f"{sym}_{cfg.interval}.parquet").exists():
+                    missing.append(sym)
+            if missing:
+                logger = get_logger("trading.backtest", json=json_logs)
+                logger.warning(
+                    "auto-downloading missing data",
+                    extra={"symbols": missing, "cache_dir": str(cache_dir)},
+                )
+                download_yf_bars(
+                    missing, interval=cfg.interval, start="2024-01-01", out_dir=str(cache_dir)
+                )
+        except Exception as exc:
+            logger = get_logger("trading.backtest", json=json_logs)
+            logger.warning("auto-download skipped", extra={"error": str(exc)})
 
     from trading.core.contracts import Strategy as StrategyABC
 
@@ -73,25 +86,35 @@ def backtest(
 
         return NoopStrategy()
 
-    engine = BacktestEngine(strategy_factory=strategy_factory, config=cfg)
+    # Logger
+    import logging as _logging
+    level = getattr(_logging, str(log_level).upper(), _logging.INFO)
+    configure_logging(level=level, json=json_logs)
+    logger = get_logger("trading.backtest").bind(run_id=run)
+    logger.info("starting_backtest", symbols=cfg.symbols, interval=cfg.interval)
+
+    engine = BacktestEngine(strategy_factory=strategy_factory, config=cfg, logger=logger)
     engine.run()
-    typer.echo(f"Backtest finished. Artifacts: runs/{run}")
+    logger.info("backtest_finished", out_dir=str(cfg.out_dir))
     # Generate HTML report
     try:
         from trading.reporting.report import generate_html_report
 
-        out = generate_html_report(f"runs/{run}")
-        typer.echo(f"Report: {out}")
+        out = generate_html_report(f"{cfg.out_dir}/{run}")
+        logger.info("report_generated", path=str(out))
     except Exception as exc:
-        typer.echo(f"Warning: report generation failed: {exc}")
+        logger.warning("report_generation_failed", error=str(exc))
 
 
 def live(
     config: str = typer.Option(..., "--config", help="Path to YAML config"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Do not actually place orders"),
+    json_logs: bool = typer.Option(False, "--json-logs", help="Emit JSON logs to stdout"),
+    log_level: str = typer.Option("INFO", "--log-level", help="Logging level: DEBUG, INFO, WARNING, ERROR"),
 ) -> None:
     """Run the live loop (MVP). In dry-run, only connectivity is checked."""
     from trading.config import load_settings
+    from trading.observability.logging import get_logger, configure_logging
 
     settings = load_settings(config)
     if dry_run:
@@ -109,16 +132,22 @@ def live(
             async def check() -> None:
                 cm = IBConnectionManager(cfg)
                 await cm.ensure_connected()
-                typer.echo("IB: connected")
+                logger = get_logger("trading.live")
+                logger.info("ib_connected")
                 await cm.disconnect()
-                typer.echo("IB: disconnected")
+                logger.info("ib_disconnected")
 
             asyncio.run(check())
         except Exception as exc:
-            typer.echo(f"Live dry-run failed: {exc}")
+            logger = get_logger("trading.live")
+            logger.warning("live_dry_run_failed", error=str(exc))
         return
     else:
-        typer.echo("Live trading loop not implemented yet (Phase 3 WIP)")
+        import logging as _logging
+        level = getattr(_logging, str(log_level).upper(), _logging.INFO)
+        configure_logging(level=level, json=json_logs)
+        logger = get_logger("trading.live")
+        logger.info("live_loop_not_implemented")
 
 
 def fixtures_download(
@@ -132,10 +161,10 @@ def fixtures_download(
 
     paths = download_yf_bars(symbols, interval=interval, start=start, end=end, out_dir=out_dir)
     if not paths:
-        typer.echo("No data downloaded (check symbols/interval)")
+        print("No data downloaded (check symbols/interval)")
     else:
         for p in paths:
-            typer.echo(f"Saved {p}")
+            print(f"Saved {p}")
 
 
 def prune(
@@ -154,7 +183,7 @@ def prune(
     removed = prune_directories(base, keep_days=keep_days, apply=apply)
     action = "Removed" if apply else "Would remove"
     for path in removed:
-        typer.echo(f"{action}: {path}")
+        print(f"{action}: {path}")
 
 
 app.add_typer(fixtures_app, name="fixtures")

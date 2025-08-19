@@ -61,12 +61,14 @@ def generate_html_report(run_dir: str | Path) -> Path:
     template = env.get_template("report.html.j2")
 
     metrics = ri.summary.get("metrics", {}) or {}
+    observability = ri.summary.get("observability", {}) or {}
 
     html = template.render(
         run_id=ri.summary.get("run_id"),
         symbols=", ".join(ri.summary.get("symbols", [])),
         interval=ri.summary.get("interval"),
         metrics=metrics,
+        observability=observability,
         equity_plot=equity_html,
         drawdown_plot=dd_html,
     )

@@ -7,6 +7,7 @@ import pandas as pd
 import pandas_market_calendars as mcal
 
 from trading.core.contracts import RiskManager
+import logging
 from trading.core.models import Order
 
 
@@ -30,15 +31,18 @@ class BasicRiskManager(RiskManager):
         *,
         get_gross_exposure: Optional[Callable[[], float]] = None,
         get_daily_realized_pnl: Optional[Callable[[], float]] = None,
+        enable_session_gate: bool = True,
     ) -> None:
         self.params = params
         self._get_gross_exposure = get_gross_exposure
         self._get_daily_realized_pnl = get_daily_realized_pnl
         self._calendar = mcal.get_calendar(params.market_calendar)
+        # In backtests and unit tests, wall-clock session gating should be disabled
+        self._enable_session_gate = enable_session_gate
 
     def validate(self, proposed_order: Order) -> Optional[Order]:
         now = datetime.now(timezone.utc)
-        if not self._is_session_open(now):
+        if self._enable_session_gate and not self._is_session_open(now):
             return None
 
         # Per-symbol notional cap (limit orders)
@@ -57,8 +61,11 @@ class BasicRiskManager(RiskManager):
                 daily_realized = float(self._get_daily_realized_pnl())
                 if daily_realized < -abs(self.params.daily_loss_cap):
                     return None
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.getLogger(__name__).warning(
+                    "daily loss cap check failed; allowing order",
+                    extra={"error": str(exc)},
+                )
 
         # Gross exposure cap
         if self.params.max_gross_exposure and self._get_gross_exposure is not None and notional > 0:
@@ -66,8 +73,11 @@ class BasicRiskManager(RiskManager):
                 gross = float(self._get_gross_exposure())
                 if gross + abs(notional) > self.params.max_gross_exposure:
                     return None
-            except Exception:
-                pass
+            except Exception as exc:
+                logging.getLogger(__name__).warning(
+                    "gross exposure check failed; allowing order",
+                    extra={"error": str(exc)},
+                )
 
         return proposed_order
 

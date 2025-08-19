@@ -1,0 +1,11 @@
+# Code owners for Phase 3 related paths
+# Adjust to real GitHub usernames or teams
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners
+*       @your-github-username
+
+# Trading code
+/trading/    @your-github-username
+/tests/      @your-github-username
+/.github/    @your-github-username

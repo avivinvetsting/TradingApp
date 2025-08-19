@@ -9,12 +9,25 @@
 - **Storage**: Local-first (Parquet/SQLite); detailed logs and ledgers retained
 - **Reporting**: HTML and notebook reports; web dashboard later
 
+### Ownership & RACI (lightweight)
+- **Owner (D1)**: Repo maintainer (merges, releases, production decisions)
+- **Reviewer (D2)**: Code owners per path (`.github/CODEOWNERS`)
+- **Contributor**: Anyone opening PRs
+- **Stakeholder**: Trader/user of the bot
+
 ### Guiding Principles (context-aware, sequential delivery)
 - Optimize for correctness and simplicity first; add sophistication only when a real limitation is encountered.
 - Prefer explicit contracts and small, composable components over monoliths.
 - Make state and decisions observable by default (logs, metrics, artifacts) to speed feedback.
 - One-way door decisions recorded in a decision log; everything else is reversible with small edits.
 - Each milestone is shippable and independently valuable; avoid cross-milestone coupling.
+
+### Release & Branching Strategy
+- Trunk: `main` (always green)
+- Feature branches: `feat/*`, `fix/*`, `chore/*`; PRs required with template and CODEOWNERS reviews
+- CI gates: lint, type, tests, coverage ≥ 80%, pre-commit
+- Versioning: SemVer for the package; tag releases for milestone endpoints
+- Rollback: revert merge commit; artifacts are immutable per `run_id`
 
 ### Recommended IBKR Market Data (initial)
 - Use delayed data for development if needed.
@@ -75,6 +88,17 @@
 - Risk checks prevent rule violations; kill-switch halts the run when triggered.
  - Artifacts (bars, orders, fills, equity) written with immutable run-id directory; JSON summary includes git SHA and config hash.
 
+### Quality Gates for Milestone 2
+- Coverage ≥ 80% (unit); integration tests green
+- Structured logs available (text + JSON) with `run_id`, `symbols`, `interval`
+- Parquet loader validates schema/dtypes; UTC timestamps monotonic; errors clear
+- CI includes lint/type/security scans; weekly scheduled run; dependency updates enabled
+
+### Success Metrics (Milestone 2)
+- Backtest on SPY/QQQ runs < 60s locally with cached data
+- Report renders without errors; metrics present (Sharpe, maxDD, hit rate)
+- Deterministic re-run produces identical `summary.json` given same inputs
+
 ---
 
 ## Milestone 3 — Live Data & Paper Account Integration (Week 4)
@@ -102,6 +126,16 @@
 - Disconnect/reconnect recovers subscriptions and reconciles state without duplication.
  - Health endpoint or heartbeat log cadence demonstrates liveness; exponential backoff respected under induced failures.
 
+### Quality Gates for Milestone 3
+- Live CLI supports `--json-logs`, `--log-level`; logs include `run_id`, `symbol`, `timeframe`
+- Reconnect/backoff logic covered by integration tests (mocked ib_insync)
+- Persistence schema validated (SQLite/Parquet) and error paths covered
+
+### Success Metrics (Milestone 3)
+- Sustained live connection ≥ 30 minutes without unhandled exceptions
+- Reconnect under induced disconnect within ≤ 30s (backoff respected)
+- Heartbeat cadence visible (e.g., 60s) with counters increasing
+
 ---
 
 ## Milestone 4 — The First Paper Trade (Week 5)
@@ -121,6 +155,13 @@
   - Checklist to start/stop, verify health, and recover from issues.
 
 ### Acceptance Criteria
+- ### Quality Gates for Milestone 4
+- Daily report present and complete (orders, fills, PnL, positions)
+- Restart idempotency verified; no duplicated orders after restart
+
+### Success Metrics (Milestone 4)
+- At least one filled paper order with accurate commission and PnL updates
+- E2E live session ≥ 2 hours without unhandled exceptions
 - At least one automated order is placed and filled in paper.
 - Orders/fills ledgers and PnL updated; report generated.
 - On restart, system reconciles and resumes without duplicating actions.
@@ -296,7 +337,7 @@ Observability hooks
 - **Data & IB**: `ib_insync`, `pandas`, `numpy`, `pyarrow` (Parquet), `pandas-market-calendars`; optional `yfinance` for CA factors.
 - **Config & CLI**: `pydantic` v2, `typer`, `.env` via `python-dotenv`.
 - **Engines**: Synchronous backtest loop; `asyncio` for live.
-- **QA/DevEx**: `pytest`, `mypy`, `ruff`, `black`, pre-commit hooks; GitHub Actions CI.
+- **QA/DevEx**: `pytest`, `mypy`, `ruff`, `black`, pre-commit hooks; GitHub Actions CI; Dependabot.
 - **Reporting**: Plotly + Jinja HTML; Jupyter notebooks template.
 - **Storage**: Parquet for artifacts; SQLite for live state.
 
@@ -315,11 +356,61 @@ Suggested additions
 - **Security**: IB credentials and API keys never logged; secrets via environment or OS keyring; repo contains no plaintext secrets.
 - **Portability**: Linux-first; scripts should also run under WSL2 on Windows (documented).
 
+### Environments Matrix
+- Local: developer laptop/WSL2; JSON logs optional; artifacts under `runs/`
+- CI: unit + integration; mocked IB; coverage upload
+- Paper: IBKR paper via TWS/Gateway; JSON logs on; daily artifact rotation
+
+### SLOs & Monitoring
+- Availability (Phase 3 sessions): target ≥ 95% for 30–60 min dev sessions
+- Recovery: reconnect ≤ 30s under induced disconnect
+- Observability: heartbeats every 60s; counters and basic latencies logged
+
 ## Testing Strategy
 - **Unit tests**: Contracts for `DataAdapter`, `Strategy`, `RiskManager`, `ExecutionEngine`, portfolio math, CA adjuster.
 - **Integration tests**: File-backed data adapter; order simulator; end-to-end backtest with a known dataset and golden metrics.
 - **Live dry-run test**: Connect to IB paper in dry-run mode, stream bars for a few minutes, assert heartbeats and reconnection.
 - **Regression guardrails**: Snapshot JSON summary and key metrics with tolerances; config hash embedded in artifacts.
+
+## Metrics & Observability Specification
+
+- Structured log fields (JSON): `ts`, `level`, `logger`, `run_id`, `symbol`, `timeframe`, `event`, optional context per event
+- Counters: `bars_processed`, `orders_proposed`, `orders_approved`, `orders_submitted`, `fills`
+- Timers: backtest `bar_loop_ms` (avg, max, p50, p95); live latency (bar_close→submit)
+- Health/heartbeats: message `heartbeat` every N bars/minutes with counters
+- Artifacts: `summary.json` (includes metrics + observability stats), Parquet ledgers, HTML report
+
+## Risk Register (living)
+
+- IB connectivity instability → Mitigation: retries with jitter, reconnection tests, manual runbook
+- Data gaps/invalid schema → Mitigation: schema validation, clear errors, unit/integration tests
+- Order duplication after reconnect → Mitigation: idempotent order mapping, reconciliation tests
+- Performance regressions (backtester) → Mitigation: benchmarks, target runtime < 60s for SPY/QQQ daily
+- Dependency breakage → Mitigation: weekly CI, Dependabot, pin critical ranges
+
+## Change Management
+
+- Decision Log entry template:
+  - Context
+  - Options considered
+  - Decision and rationale
+  - Date and owner
+- Issue/PR templates enforced; CODEOWNERS required reviews for sensitive paths (`trading/`, `tests/`, `.github/`)
+
+## Milestone 6 — Production Readiness (Real Money, optional)
+
+### Scope
+- Transition from paper to small real‑money trades with strict controls
+
+### Preconditions
+- ≥ 2 weeks stable paper sessions without unhandled exceptions
+- All Quality Gates met; runbook updated; rollback plan tested
+- Manual approvals process defined; position limits extremely conservative
+
+### Acceptance Criteria
+- Place a tiny real‑money test order during regular session; verify full lifecycle
+- Daily EOD reports validated; reconciliation with broker statement
+- Incident drill completed in real‑money mode (cancel/flatten on error)
 
 ## Configuration Layout Example
 ```yaml

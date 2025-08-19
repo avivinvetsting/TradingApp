@@ -9,6 +9,7 @@ venv/
 venv_py311/
 .env
 .env.*
+!.env.example
 
 # Distribution / packaging
 .Python

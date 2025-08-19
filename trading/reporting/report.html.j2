@@ -28,6 +28,20 @@
         <div class="metric">Max Drawdown: {{ metrics.max_drawdown | default('n/a') }}</div>
         <div class="metric">Calmar: {{ metrics.calmar | default('n/a') }}</div>
         <div class="metric">Hit Rate: {{ metrics.hit_rate | default('n/a') }}</div>
+        <div class="metric">Turnover (notional): {{ metrics.turnover_notional | default('n/a') }}</div>
+        <div class="metric">Time in market: {{ (metrics.time_in_market_ratio*100) | default('n/a') }}%</div>
+        <div class="metric">Peak gross exposure: {{ metrics.peak_gross_exposure | default('n/a') }}</div>
+      </div>
+    </div>
+    <div class="section">
+      <h2>Observability</h2>
+      <div class="metrics">
+        <div class="metric">Bars: {{ observability.counters.bars | default('n/a') }}</div>
+        <div class="metric">Approved orders: {{ observability.counters.orders_approved | default('n/a') }}</div>
+        <div class="metric">Fills: {{ observability.counters.fills | default('n/a') }}</div>
+        <div class="metric">Bar loop p50 (ms): {{ observability.timers.bar_loop_ms.p50 | default('n/a') }}</div>
+        <div class="metric">Bar loop p95 (ms): {{ observability.timers.bar_loop_ms.p95 | default('n/a') }}</div>
+        <div class="metric">Bars/sec: {{ observability.timers.bar_loop_ms.bars_per_sec | default('n/a') }}</div>
       </div>
     </div>
 
