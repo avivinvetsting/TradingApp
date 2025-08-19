@@ -17,6 +17,7 @@ from trading.portfolio.accounting import PortfolioState
 from trading.risk.manager import BasicRiskManager, RiskParams
 from trading.data.series_loader import load_parquet_series
 from trading.backtest.metrics import compute_from_equity
+from trading.util.clock import Clock, DEFAULT_CLOCK
 
 
 @dataclass
@@ -39,6 +40,7 @@ class BacktestEngine:
         strategy_factory: Callable[[str], Strategy],
         config: BacktestConfig,
         logger: Optional[object] = None,
+        clock: Clock = DEFAULT_CLOCK,
     ) -> None:
         self.strategy_factory: Callable[[str], Strategy] = strategy_factory
         self.config = config
@@ -53,6 +55,7 @@ class BacktestEngine:
             slippage_bps=config.slippage_bps, fill_policy=FillPolicy(None)
         )
         self.portfolio = PortfolioState(cash=100000.0)
+        self._clock: Clock = clock
         # Disable wall-clock session gate in backtests for determinism
         self.risk = BasicRiskManager(
             RiskParams(
@@ -205,7 +208,7 @@ class BacktestEngine:
                         self._turnover_notional += abs(float(fill.qty) * float(fill.price))
 
             snap = self.portfolio.snapshot(
-                as_of=ts if isinstance(ts, datetime) else datetime.now(timezone.utc), marks=marks
+                as_of=ts if isinstance(ts, datetime) else self._clock.now_utc(), marks=marks
             )
             self._equity.append(
                 {
