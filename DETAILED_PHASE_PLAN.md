@@ -58,6 +58,15 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [ ] Tests: integration (dry-run, forced reconnect with mocks); contract (idempotency, reconciliation); logging shape (JSON fields: run_id, symbol, timeframe)
 - [ ] Observability: optional `/healthz` or periodic heartbeat log; counters (bars/orders/latency); reconnect/failure counters
 
+### Go/No‑Go — Operational Readiness (before starting live session)
+
+- [ ] IB Gateway/TWS configured as per `PHASE3_RUNBOOK.md`; port and API enabled
+- [ ] Dry‑run connectivity green for target host/port/client id
+- [ ] Structured logging verified in JSON mode; log sample captured
+- [ ] Reconnect test performed (forced disconnect → successful resubscribe + reconciliation)
+- [ ] Persistence validated (SQLite/Parquet schema + write/read cycle)
+- [ ] Alerts/notifications channel decided (even if manual for Phase 3)
+
 ---
 
 ## Phase 4 — First Paper Trade (Week 5)
@@ -70,6 +79,13 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [ ] Acceptance: at least one filled paper order; accurate ledgers; EOD report; restart without duplication; no unhandled exceptions
 - [ ] Tests: dry-run smoke; live paper test with tiny size; latency SLO observed (bar close → submit ≤ 2s for 1m)
  - [ ] Quality gates: logs uniform (JSON/text), daily report completeness check, CI green incl. integration
+
+### Exit Checklist (end of Phase 4)
+
+- [ ] At least one placed and filled paper order with full lifecycle events persisted
+- [ ] EOD report archived and shared (contains orders, fills, PnL, positions)
+- [ ] Restart test: stop/start without duplication; open orders reconciled; positions match broker
+- [ ] Incident drill: simulate broker outage for 2–5 minutes → system recovers with backoff
 
 ---
 
