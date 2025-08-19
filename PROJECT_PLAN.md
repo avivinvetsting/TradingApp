@@ -108,6 +108,11 @@
 - Disconnect/reconnect recovers subscriptions and reconciles state without duplication.
  - Health endpoint or heartbeat log cadence demonstrates liveness; exponential backoff respected under induced failures.
 
+### Quality Gates for Milestone 3
+- Live CLI supports `--json-logs`, `--log-level`; logs include `run_id`, `symbol`, `timeframe`
+- Reconnect/backoff logic covered by integration tests (mocked ib_insync)
+- Persistence schema validated (SQLite/Parquet) and error paths covered
+
 ---
 
 ## Milestone 4 — The First Paper Trade (Week 5)

@@ -53,10 +53,10 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [ ] Broker adapter (paper): submit/cancel market/limit; idempotent local↔broker order id mapping
 - [ ] Reconciliation: resubscribe; refresh open orders and positions; ensure no duplication
 - [ ] Persistence: live orders/fills/position snapshots to SQLite/Parquet
-- [ ] CLI: `trade live --config` with `--dry-run`; structured logs + heartbeats
-- [ ] Acceptance: connects to paper; subscribes SPY/QQQ; can submit/cancel; recovers cleanly; heartbeat/backoff validated
-- [ ] Tests: integration (dry-run, forced reconnect); contract (idempotency, reconciliation)
-- [ ] Observability: optional `/healthz`; heartbeat cadence; reconnect/failure counters
+- [ ] CLI: `trade live --config` with `--dry-run`; supports `--json-logs` and `--log-level`; emits heartbeats
+- [ ] Acceptance: connects to paper; subscribes SPY/QQQ; can submit/cancel; recovers cleanly; heartbeat/backoff validated (tenacity retries with jitter); reconciliation verified after induced disconnect
+- [ ] Tests: integration (dry-run, forced reconnect with mocks); contract (idempotency, reconciliation); logging shape (JSON fields: run_id, symbol, timeframe)
+- [ ] Observability: optional `/healthz` or periodic heartbeat log; counters (bars/orders/latency); reconnect/failure counters
 
 ---
 
@@ -69,6 +69,7 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [ ] Runbook: start/stop/recovery steps; restart idempotency verified
 - [ ] Acceptance: at least one filled paper order; accurate ledgers; EOD report; restart without duplication; no unhandled exceptions
 - [ ] Tests: dry-run smoke; live paper test with tiny size; latency SLO observed (bar close → submit ≤ 2s for 1m)
+ - [ ] Quality gates: logs uniform (JSON/text), daily report completeness check, CI green incl. integration
 
 ---
 
@@ -109,6 +110,15 @@ End-of-Phase
 - [ ] Security/dev tooling: pre-commit hooks run clean; lint/type checks pass; security scans (bandit, pip-audit) clean or triaged
 - [ ] Dependency hygiene: dependabot/renovate enabled; Python version pinned
 - [ ] Reproducibility: deterministic backtest outputs given same cache and config hash; artifacts + report generated
+
+### Hardening Backlog (optional but recommended)
+
+- [ ] Performance: k‑way timestamp merge in backtester; streamed/partitioned Parquet writes
+- [ ] Time: inject clock abstraction; remove direct `datetime.now()` usage for determinism
+- [ ] Data: add schema version metadata to Parquet and validate on read
+- [ ] Tests: property‑based tests for portfolio and execution edge cases; logging shape tests
+- [ ] Live: add retry/backoff with jitter to all broker/data calls; chaos/reconnect tests
+- [ ] Tooling: pre-commit config standardized; CI caches and Codecov guard; Dependabot for actions
 
 ---
 
