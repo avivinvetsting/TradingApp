@@ -64,10 +64,10 @@ Use this ordered checklist to drive implementation. Check items in sequence.
 5. [x] Add `--json-logs` flag and emit heartbeat logs in backtest loop
 6. [x] Add Make targets: `make ci`, `make report RUN=<id>`, `make prune-runs`
 7. [x] Add `.env.example`, `.python-version`, Dependabot; update README with runbook link
-8. [ ] Replace global timestamp set with k‑way merge for bar alignment (perf)
-9. [ ] Inject `Clock.now_utc()` and remove ad‑hoc `datetime.now` for determinism
-10. [ ] Record bars/sec and per‑symbol missing‑bar counters in `summary.json` and report
-11. [ ] Add turnover, time‑in‑market, and peak gross exposure to metrics/report
+8. [x] Replace global timestamp set with k‑way merge for bar alignment (perf)
+9. [x] Inject `Clock.now_utc()` and remove ad‑hoc `datetime.now` for determinism
+10. [x] Record bars/sec and per‑symbol missing‑bar counters in `summary.json` and report
+11. [x] Add turnover, time‑in‑market, and peak gross exposure to metrics/report
 12. [ ] Add property‑based tests (portfolio invariants; simulator edge cases)
 13. [ ] Add `make bench-backtest` with SLA (< 60s SPY/QQQ daily)
 
