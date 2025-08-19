@@ -1,10 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 import json
-import hashlib
 import subprocess
 import time
 
@@ -39,7 +38,7 @@ class BacktestEngine:
         self,
         strategy_factory: Callable[[str], Strategy],
         config: BacktestConfig,
-        logger: Optional[object] = None,
+        logger: Optional[Any] = None,
         clock: Clock = DEFAULT_CLOCK,
     ) -> None:
         self.strategy_factory: Callable[[str], Strategy] = strategy_factory
@@ -47,9 +46,10 @@ class BacktestEngine:
         # Lazy import to avoid forcing logging at import time
         try:
             # structlog logger preferred
-            self._logger = logger or __import__("structlog").get_logger("trading.backtest")
+            self._logger: Any = logger or __import__("structlog").get_logger("trading.backtest")
         except Exception:
             import logging as _logging
+
             self._logger = logger or _logging.getLogger("trading.backtest")
         self.sim = SimpleExecutionSimulator(
             slippage_bps=config.slippage_bps, fill_policy=FillPolicy(None)
@@ -76,6 +76,7 @@ class BacktestEngine:
         self._peak_gross_exposure: float = 0.0
 
     def run(self) -> None:
+        self._run_start = time.perf_counter()
         out_base = Path(self.config.out_dir) / self.config.run_id
         (out_base / "reports").mkdir(parents=True, exist_ok=True)
 
@@ -100,6 +101,7 @@ class BacktestEngine:
 
         # Merge all timestamps across symbols using k-way merge to reduce memory
         import heapq
+
         iters: Dict[str, Any] = {sym: iter(df["end"].tolist()) for sym, df in series.items()}
         heap: list[tuple[datetime, str]] = []
         for sym, it in iters.items():
@@ -124,7 +126,6 @@ class BacktestEngine:
                 pass
 
         heartbeat_every = max(1, int(self.config.heartbeat_every))
-        run_start = time.perf_counter()
         for idx, ts in enumerate(all_ts):
             loop_start = time.perf_counter()
             marks: Dict[str, float] = {}
@@ -132,7 +133,9 @@ class BacktestEngine:
                 # Get row at timestamp if present
                 rows = df[df["end"] == ts]
                 if rows.empty:
-                    self._missing_bars_per_symbol[sym] = self._missing_bars_per_symbol.get(sym, 0) + 1
+                    self._missing_bars_per_symbol[sym] = (
+                        self._missing_bars_per_symbol.get(sym, 0) + 1
+                    )
                     continue
                 row = rows.iloc[0]
                 bar = Bar(
@@ -204,8 +207,8 @@ class BacktestEngine:
                     self.portfolio.apply_fill(
                         fill, price=fill.price, symbol=sym, commission=self.config.commission_fixed
                     )
-                        # Turnover notional accumulates absolute traded notional
-                        self._turnover_notional += abs(float(fill.qty) * float(fill.price))
+                    # Turnover notional accumulates absolute traded notional
+                    self._turnover_notional += abs(float(fill.qty) * float(fill.price))
 
             snap = self.portfolio.snapshot(
                 as_of=ts if isinstance(ts, datetime) else self._clock.now_utc(), marks=marks
@@ -291,8 +294,9 @@ class BacktestEngine:
         # Try to include git SHA
         try:
             git_sha = (
-                subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True)
-                .stdout.strip()
+                subprocess.run(
+                    ["git", "rev-parse", "HEAD"], capture_output=True, text=True
+                ).stdout.strip()
                 or None
             )
         except Exception:
@@ -315,7 +319,7 @@ class BacktestEngine:
             return results
 
         total_bars = len(self._bars)
-        total_secs = max(1e-9, time.perf_counter() - run_start)
+        total_secs = max(1e-9, time.perf_counter() - self._run_start)
         bars_per_sec = float(total_bars) / float(total_secs)
         counters = {
             "bars": len(self._bars),
@@ -326,7 +330,9 @@ class BacktestEngine:
         timer_stats = (
             {
                 "count": len(self._bar_loop_ms),
-                "avg": (sum(self._bar_loop_ms) / len(self._bar_loop_ms)) if self._bar_loop_ms else 0.0,
+                "avg": (
+                    (sum(self._bar_loop_ms) / len(self._bar_loop_ms)) if self._bar_loop_ms else 0.0
+                ),
                 "max": max(self._bar_loop_ms) if self._bar_loop_ms else 0.0,
                 **_percentiles(self._bar_loop_ms, [0.5, 0.95]),
                 "bars_per_sec": bars_per_sec,
@@ -356,7 +362,9 @@ class BacktestEngine:
                     # Additional
                     "turnover_notional": self._turnover_notional,
                     "time_in_market_ratio": (
-                        float(self._time_in_market_bars) / float(len(self._equity)) if self._equity else 0.0
+                        float(self._time_in_market_bars) / float(len(self._equity))
+                        if self._equity
+                        else 0.0
                     ),
                     "peak_gross_exposure": self._peak_gross_exposure,
                 }

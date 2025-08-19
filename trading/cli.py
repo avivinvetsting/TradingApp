@@ -18,10 +18,18 @@ def backtest(
     config: str = typer.Option(..., "--config", help="Path to YAML config"),
     run_id: Optional[str] = typer.Option(None, "--run-id", help="Explicit run id; default uuid4"),
     json_logs: bool = typer.Option(False, "--json-logs", help="Emit JSON logs to stdout"),
-    out_dir: Optional[str] = typer.Option(None, "--out-dir", help="Output base directory for run artifacts (default 'runs')"),
-    log_level: str = typer.Option("INFO", "--log-level", help="Logging level: DEBUG, INFO, WARNING, ERROR"),
-    no_autodownload: bool = typer.Option(False, "--no-autodownload", help="Disable auto-download of missing caches"),
-    heartbeat_every: int = typer.Option(100, "--heartbeat-every", help="Emit heartbeat every N bars"),
+    out_dir: Optional[str] = typer.Option(
+        None, "--out-dir", help="Output base directory for run artifacts (default 'runs')"
+    ),
+    log_level: str = typer.Option(
+        "INFO", "--log-level", help="Logging level: DEBUG, INFO, WARNING, ERROR"
+    ),
+    no_autodownload: bool = typer.Option(
+        False, "--no-autodownload", help="Disable auto-download of missing caches"
+    ),
+    heartbeat_every: int = typer.Option(
+        100, "--heartbeat-every", help="Emit heartbeat every N bars"
+    ),
 ) -> None:
     """Run a backtest using config (simple runner for Parquet cache)."""
     from trading.config import load_settings
@@ -51,7 +59,6 @@ def backtest(
     # Auto-download missing caches into the configured cache_dir
     if not no_autodownload:
         try:
-            from pathlib import Path
             from trading.data.fixtures import download_yf_bars
 
             cache_dir = Path(cfg.cache_dir)
@@ -61,7 +68,7 @@ def backtest(
                 if not (cache_dir / f"{sym}_{cfg.interval}.parquet").exists():
                     missing.append(sym)
             if missing:
-                logger = get_logger("trading.backtest", json=json_logs)
+                logger = get_logger("trading.backtest")
                 logger.warning(
                     "auto-downloading missing data",
                     extra={"symbols": missing, "cache_dir": str(cache_dir)},
@@ -70,7 +77,7 @@ def backtest(
                     missing, interval=cfg.interval, start="2024-01-01", out_dir=str(cache_dir)
                 )
         except Exception as exc:
-            logger = get_logger("trading.backtest", json=json_logs)
+            logger = get_logger("trading.backtest")
             logger.warning("auto-download skipped", extra={"error": str(exc)})
 
     from trading.core.contracts import Strategy as StrategyABC
@@ -88,6 +95,7 @@ def backtest(
 
     # Logger
     import logging as _logging
+
     level = getattr(_logging, str(log_level).upper(), _logging.INFO)
     configure_logging(level=level, json=json_logs)
     logger = get_logger("trading.backtest").bind(run_id=run)
@@ -110,7 +118,9 @@ def live(
     config: str = typer.Option(..., "--config", help="Path to YAML config"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Do not actually place orders"),
     json_logs: bool = typer.Option(False, "--json-logs", help="Emit JSON logs to stdout"),
-    log_level: str = typer.Option("INFO", "--log-level", help="Logging level: DEBUG, INFO, WARNING, ERROR"),
+    log_level: str = typer.Option(
+        "INFO", "--log-level", help="Logging level: DEBUG, INFO, WARNING, ERROR"
+    ),
 ) -> None:
     """Run the live loop (MVP). In dry-run, only connectivity is checked."""
     from trading.config import load_settings
@@ -144,6 +154,7 @@ def live(
         return
     else:
         import logging as _logging
+
         level = getattr(_logging, str(log_level).upper(), _logging.INFO)
         configure_logging(level=level, json=json_logs)
         logger = get_logger("trading.live")

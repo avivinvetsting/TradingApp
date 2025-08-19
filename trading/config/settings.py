@@ -32,7 +32,7 @@ class RiskConfig(BaseModel):  # type: ignore[misc]
         if v < 0:
             raise ValueError("risk caps must be nonnegative")
         return v
-    
+
     @field_validator("daily_loss_cap")
     @classmethod
     def _nonnegative_or_none(cls, v: Optional[float]) -> Optional[float]:

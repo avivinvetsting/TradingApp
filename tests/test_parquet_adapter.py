@@ -54,10 +54,18 @@ def test_latest_completed_bar_returns_last_row(tmp_path: Path) -> None:
 
 
 def test_series_loader_raises_on_wrong_dtypes(tmp_path: Path) -> None:
-    # Write malformed parquet (end as string, volume as string)
+    # Write malformed parquet with invalid numeric values that can't be coerced
     file = tmp_path / "SPY_1d.parquet"
     rows = [
-        {"symbol": "SPY", "end": "2024-01-01T21:00:00Z", "open": 100, "high": 101, "low": 99, "close": 100.5, "volume": "1000"}
+        {
+            "symbol": "SPY",
+            "end": "2024-01-01T21:00:00Z",
+            "open": "invalid",
+            "high": "invalid",
+            "low": "invalid",
+            "close": "invalid",
+            "volume": "invalid",
+        }
     ]
     pd.DataFrame(rows).to_parquet(file, index=False)
     with pytest.raises(Exception):
@@ -90,8 +98,24 @@ def test_series_loader_rejects_duplicate_timestamps(tmp_path: Path) -> None:
     base = tmp_path
     file = base / "SPY_1d.parquet"
     rows = [
-        {"symbol": "SPY", "end": "2024-01-03T21:00:00Z", "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "volume": 1000},
-        {"symbol": "SPY", "end": "2024-01-03T21:00:00Z", "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "volume": 1000},
+        {
+            "symbol": "SPY",
+            "end": "2024-01-03T21:00:00Z",
+            "open": 100.0,
+            "high": 101.0,
+            "low": 99.0,
+            "close": 100.5,
+            "volume": 1000,
+        },
+        {
+            "symbol": "SPY",
+            "end": "2024-01-03T21:00:00Z",
+            "open": 100.0,
+            "high": 101.0,
+            "low": 99.0,
+            "close": 100.5,
+            "volume": 1000,
+        },
     ]
     _write_parquet(file, rows)
     with pytest.raises(Exception):

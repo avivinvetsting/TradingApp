@@ -1,12 +1,13 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 try:  # lazy import; only used in live mode
-    from ib_insync import IB
+    import ib_insync as ib
 except Exception:  # pragma: no cover
-    IB = None
+    ib = None
 
 
 @dataclass
@@ -18,12 +19,12 @@ class IBConnectionConfig:
 
 class IBConnectionManager:
     def __init__(self, config: IBConnectionConfig) -> None:
-        if IB is None:
+        if ib is None:
             raise RuntimeError(
                 "ib_insync not available; install dependencies or run in backtest mode"
             )
         self.cfg = config
-        self.ib = IB()
+        self.ib: Any = ib.IB()
 
     @retry(wait=wait_exponential(multiplier=1, min=1, max=30), stop=stop_after_attempt(5))  # type: ignore[misc]
     async def connect_with_backoff(self) -> None:

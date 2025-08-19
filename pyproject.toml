@@ -63,15 +63,9 @@ ignore_missing_imports = true
 files = ["trading", "tests"]
 exclude = "(^venv_py311/|^venv/|^\\.venv/|^runs/|^data/|^build/|^dist/|^reports/)"
 
-[tool.mypy.overrides]
-module = [
-  "trading.cli",
-]
-disable_error_code = [
-  "misc",
-  "no-untyped-def",
-  "no-untyped-call",
-]
+[[tool.mypy.overrides]]
+module = ["trading.cli"]
+disable_error_code = ["misc", "no-untyped-def", "no-untyped-call"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
