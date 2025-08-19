@@ -109,9 +109,12 @@ def backtest(
 def live(
     config: str = typer.Option(..., "--config", help="Path to YAML config"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Do not actually place orders"),
+    json_logs: bool = typer.Option(False, "--json-logs", help="Emit JSON logs to stdout"),
+    log_level: str = typer.Option("INFO", "--log-level", help="Logging level: DEBUG, INFO, WARNING, ERROR"),
 ) -> None:
     """Run the live loop (MVP). In dry-run, only connectivity is checked."""
     from trading.config import load_settings
+    from trading.observability.logging import get_logger, configure_logging
 
     settings = load_settings(config)
     if dry_run:
@@ -129,16 +132,22 @@ def live(
             async def check() -> None:
                 cm = IBConnectionManager(cfg)
                 await cm.ensure_connected()
-                print("IB: connected")
+                logger = get_logger("trading.live")
+                logger.info("ib_connected")
                 await cm.disconnect()
-                print("IB: disconnected")
+                logger.info("ib_disconnected")
 
             asyncio.run(check())
         except Exception as exc:
-            print(f"Live dry-run failed: {exc}")
+            logger = get_logger("trading.live")
+            logger.warning("live_dry_run_failed", error=str(exc))
         return
     else:
-        print("Live trading loop not implemented yet (Phase 3 WIP)")
+        import logging as _logging
+        level = getattr(_logging, str(log_level).upper(), _logging.INFO)
+        configure_logging(level=level, json=json_logs)
+        logger = get_logger("trading.live")
+        logger.info("live_loop_not_implemented")
 
 
 def fixtures_download(

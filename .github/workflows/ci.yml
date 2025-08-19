@@ -47,12 +47,13 @@ jobs:
         run: |
           pytest -m "not integration" --cov=trading --cov-report=term-missing --cov-report=xml --cov-fail-under=80
       - name: Upload coverage to Codecov
-        if: always()
+        if: ${{ always() && secrets.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           verbose: true
+        continue-on-error: true
 
   integration:
     runs-on: ubuntu-latest
