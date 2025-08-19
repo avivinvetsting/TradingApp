@@ -72,7 +72,7 @@ snap = pf.snapshot(marks={"SPY": 101.0})
   - Limit (buy): fills if `bar_low <= limit`; price = min(close, limit) ± slippage.
   - Limit (sell): fills if `bar_high >= limit`; price = max(close, limit) ± slippage.
   - Participation cap: if set, fill qty ≤ `int(bar_volume * cap)`.
-  - Fill timestamps use `datetime.now(timezone.utc)`.
+  - Fill timestamps are aligned with bar end (deterministic); simulator also accepts explicit `fill_ts` for tests.
 - Config: `ExecutionConfig` includes `slippage_bps` and `commission_fixed` (to be applied at portfolio update time).
 - Tests: `tests/test_execution_simulator.py` covers slippage, limit behavior, and cap.
 
@@ -130,8 +130,14 @@ approved = rm.validate(order)
 
 ### 2.9 Observability (Backtest)
 - Purpose: Make runs measurable and comparable.
-- Counters: bars, orders proposed/approved, fills.
-- Timers: per-bar loop latency stats (avg/max/p50/p95) under `summary.json.observability.timers.bar_loop_ms`.
+- Counters: bars, orders proposed/approved, fills; missing bars per symbol.
+- Timers: per-bar loop latency stats (avg/max/p50/p95) and `bars_per_sec` under `summary.json.observability.timers.bar_loop_ms`.
+- Metrics extended: turnover notional, time-in-market ratio, peak gross exposure.
+
+### 2.10 Determinism and Performance
+- K-way timestamp merge for bar alignment across symbols (memory efficient)
+- Deterministic clock (`trading/util/clock.py`) used in engine; eliminates ad-hoc time calls in core loop
+- Loader enforces strictly-increasing UTC timestamps; duplicate timestamps are rejected with clear errors
 
 ### Commands reference
 ```bash
