@@ -67,6 +67,14 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [ ] Persistence validated (SQLite/Parquet schema + write/read cycle)
 - [ ] Alerts/notifications channel decided (even if manual for Phase 3)
 
+### Non‑Goals (Phase 3)
+
+- No real‑money trading (paper only)
+- No options/futures support (equities/ETFs only)
+- No sub‑second latencies; poll‑based loop is acceptable
+- No advanced order types beyond market/limit
+- No external dashboards (HTML report only)
+
 ---
 
 ## Phase 4 — First Paper Trade (Week 5)
@@ -86,6 +94,12 @@ Use these checklists to track progress. Check items as you complete them. Captur
 - [ ] EOD report archived and shared (contains orders, fills, PnL, positions)
 - [ ] Restart test: stop/start without duplication; open orders reconciled; positions match broker
 - [ ] Incident drill: simulate broker outage for 2–5 minutes → system recovers with backoff
+
+### Non‑Goals (Phase 4)
+
+- No production/real‑money trading yet
+- No options/futures
+- No portfolio margin or multi‑account orchestration
 
 ---
 
@@ -135,6 +149,27 @@ End-of-Phase
 - [ ] Tests: property‑based tests for portfolio and execution edge cases; logging shape tests
 - [ ] Live: add retry/backoff with jitter to all broker/data calls; chaos/reconnect tests
 - [ ] Tooling: pre-commit config standardized; CI caches and Codecov guard; Dependabot for actions
+
+### Assumptions & Constraints (all phases)
+
+- UTC time discipline; no local timezone logic
+- Single‑process orchestrator; no distributed state
+- Linux/WSL2 environment; Python 3.11 pinned
+- IBKR paper environment provides sufficient market data for dev
+
+### Data Retention Policy (initial)
+
+- Backtests: retain 7–14 days under `runs/`; prune via `trade ops prune`
+- Live (paper): retain 90 days of orders/fills/positions snapshots and logs
+- Never store secrets in repo; `.env` only for local development
+
+### Incident Response (abridged)
+
+1. Detect: heartbeat lapse or error log
+2. Stabilize: auto backoff/retry; if persistently failing, stop loop safely
+3. Diagnose: check connectivity, IBKR status page, credentials/ports
+4. Recover: reconnect; reconcile open orders/positions; verify no duplication
+5. Record: capture logs, artifacts, and timeline in issue tracker
 
 ---
 
