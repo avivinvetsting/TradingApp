@@ -372,6 +372,46 @@ Suggested additions
 - **Live dry-run test**: Connect to IB paper in dry-run mode, stream bars for a few minutes, assert heartbeats and reconnection.
 - **Regression guardrails**: Snapshot JSON summary and key metrics with tolerances; config hash embedded in artifacts.
 
+## Metrics & Observability Specification
+
+- Structured log fields (JSON): `ts`, `level`, `logger`, `run_id`, `symbol`, `timeframe`, `event`, optional context per event
+- Counters: `bars_processed`, `orders_proposed`, `orders_approved`, `orders_submitted`, `fills`
+- Timers: backtest `bar_loop_ms` (avg, max, p50, p95); live latency (bar_close→submit)
+- Health/heartbeats: message `heartbeat` every N bars/minutes with counters
+- Artifacts: `summary.json` (includes metrics + observability stats), Parquet ledgers, HTML report
+
+## Risk Register (living)
+
+- IB connectivity instability → Mitigation: retries with jitter, reconnection tests, manual runbook
+- Data gaps/invalid schema → Mitigation: schema validation, clear errors, unit/integration tests
+- Order duplication after reconnect → Mitigation: idempotent order mapping, reconciliation tests
+- Performance regressions (backtester) → Mitigation: benchmarks, target runtime < 60s for SPY/QQQ daily
+- Dependency breakage → Mitigation: weekly CI, Dependabot, pin critical ranges
+
+## Change Management
+
+- Decision Log entry template:
+  - Context
+  - Options considered
+  - Decision and rationale
+  - Date and owner
+- Issue/PR templates enforced; CODEOWNERS required reviews for sensitive paths (`trading/`, `tests/`, `.github/`)
+
+## Milestone 6 — Production Readiness (Real Money, optional)
+
+### Scope
+- Transition from paper to small real‑money trades with strict controls
+
+### Preconditions
+- ≥ 2 weeks stable paper sessions without unhandled exceptions
+- All Quality Gates met; runbook updated; rollback plan tested
+- Manual approvals process defined; position limits extremely conservative
+
+### Acceptance Criteria
+- Place a tiny real‑money test order during regular session; verify full lifecycle
+- Daily EOD reports validated; reconciliation with broker statement
+- Incident drill completed in real‑money mode (cancel/flatten on error)
+
 ## Configuration Layout Example
 ```yaml
 run_id: ${RUN_ID}
