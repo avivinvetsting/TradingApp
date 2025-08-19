@@ -189,6 +189,31 @@ End-of-Phase
 4. Recover: reconnect; reconcile open orders/positions; verify no duplication
 5. Record: capture logs, artifacts, and timeline in issue tracker
 
+### Verification Matrix (tests and artifacts)
+
+- Backtester engine → `tests/test_backtest_engine.py`, `tests/test_summary_snapshot.py`; artifacts: `runs/<id>/summary.json`, `equity.parquet`, HTML report
+- Portfolio accounting & costs → `tests/test_portfolio_accounting.py`
+- Execution simulator → `tests/test_execution_simulator.py`
+- Risk manager (caps/daily loss) → `tests/test_risk_manager.py`
+- Data loaders (Parquet adapter/schema) → `tests/test_parquet_adapter.py`
+- CLI (smoke/backtest) → `tests/test_cli_smoke.py`, `tests/test_cli.py`
+- Reporting → `tests/test_reporting.py`
+- Retention/prune → `tests/test_retention.py`
+- Config settings/validators → `tests/test_config_settings.py`
+
+### External Dependencies & Interfaces
+
+- IBKR TWS/Gateway (paper): host `${TRADE__DATA__IB_HOST}`, port `${TRADE__DATA__IB_PORT}` (default 7497), client id `${TRADE__DATA__IB_CLIENT_ID}`
+- `ib_insync` for IB API; `yfinance` optional for fixtures
+- Filesystem for Parquet/HTML artifacts under `runs/` and data caches under `data/cache/`
+
+### Live Rollback Plan (paper)
+
+1. Stop the live loop safely on repeated failures
+2. Cancel open limit orders; verify broker state
+3. Reconcile positions; ensure no unintended exposure
+4. Archive logs and artifacts; file incident with timeline
+
 ---
 
 ## Notes & Decisions (current)
