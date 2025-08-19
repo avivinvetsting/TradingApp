@@ -100,6 +100,16 @@ End-of-Phase
 - [ ] README and `PROJECT_PLAN.md` updated
 - [ ] Open questions answered or moved forward
 
+### Quality Gates (all phases)
+
+- [ ] Test coverage ≥ 80% and stable CI (unit + integration)
+- [ ] Structured logging uniform: JSON option; key fields bound (run_id, symbols, interval)
+- [ ] No bare `except Exception` without logging and context; error paths tested
+- [ ] Data I/O validation: Parquet/CSV schema and dtypes validated at load; UTC timestamps monotonic
+- [ ] Security/dev tooling: pre-commit hooks run clean; lint/type checks pass; security scans (bandit, pip-audit) clean or triaged
+- [ ] Dependency hygiene: dependabot/renovate enabled; Python version pinned
+- [ ] Reproducibility: deterministic backtest outputs given same cache and config hash; artifacts + report generated
+
 ---
 
 ## Notes & Decisions (current)

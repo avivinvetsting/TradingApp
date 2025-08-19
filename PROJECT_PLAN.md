@@ -75,6 +75,12 @@
 - Risk checks prevent rule violations; kill-switch halts the run when triggered.
  - Artifacts (bars, orders, fills, equity) written with immutable run-id directory; JSON summary includes git SHA and config hash.
 
+### Quality Gates for Milestone 2
+- Coverage ≥ 80% (unit); integration tests green
+- Structured logs available (text + JSON) with `run_id`, `symbols`, `interval`
+- Parquet loader validates schema/dtypes; UTC timestamps monotonic; errors clear
+- CI includes lint/type/security scans; weekly scheduled run; dependency updates enabled
+
 ---
 
 ## Milestone 3 — Live Data & Paper Account Integration (Week 4)
