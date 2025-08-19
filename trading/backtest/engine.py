@@ -67,6 +67,10 @@ class BacktestEngine:
         # Observability accumulators
         self._orders_approved_count: int = 0
         self._bar_loop_ms: list[float] = []
+        self._missing_bars_per_symbol: Dict[str, int] = {sym: 0 for sym in config.symbols}
+        self._turnover_notional: float = 0.0
+        self._time_in_market_bars: int = 0
+        self._peak_gross_exposure: float = 0.0
 
     def run(self) -> None:
         out_base = Path(self.config.out_dir) / self.config.run_id
@@ -117,6 +121,7 @@ class BacktestEngine:
                 pass
 
         heartbeat_every = max(1, int(self.config.heartbeat_every))
+        run_start = time.perf_counter()
         for idx, ts in enumerate(all_ts):
             loop_start = time.perf_counter()
             marks: Dict[str, float] = {}
@@ -124,6 +129,7 @@ class BacktestEngine:
                 # Get row at timestamp if present
                 rows = df[df["end"] == ts]
                 if rows.empty:
+                    self._missing_bars_per_symbol[sym] = self._missing_bars_per_symbol.get(sym, 0) + 1
                     continue
                 row = rows.iloc[0]
                 bar = Bar(
@@ -168,6 +174,7 @@ class BacktestEngine:
                     bar_high=bar.high,
                     bar_low=bar.low,
                     bar_volume=bar.volume,
+                    fill_ts=bar.end,
                 )
                 # Record order regardless
                 self._orders.append(
@@ -194,6 +201,8 @@ class BacktestEngine:
                     self.portfolio.apply_fill(
                         fill, price=fill.price, symbol=sym, commission=self.config.commission_fixed
                     )
+                        # Turnover notional accumulates absolute traded notional
+                        self._turnover_notional += abs(float(fill.qty) * float(fill.price))
 
             snap = self.portfolio.snapshot(
                 as_of=ts if isinstance(ts, datetime) else datetime.now(timezone.utc), marks=marks
@@ -207,6 +216,18 @@ class BacktestEngine:
                     "realized_pnl": snap.realized_pnl,
                 }
             )
+            # Time in market: any open position across symbols
+            if any(pos.qty != 0 for pos in self.portfolio.positions.values()):
+                self._time_in_market_bars += 1
+            # Peak gross exposure: sum absolute position market values
+            gross = 0.0
+            for sym, pos in self.portfolio.positions.items():
+                if pos.qty == 0:
+                    continue
+                price = marks.get(sym, pos.avg_price)
+                gross += abs(float(pos.qty) * float(price))
+            if gross > self._peak_gross_exposure:
+                self._peak_gross_exposure = gross
             loop_end = time.perf_counter()
             self._bar_loop_ms.append((loop_end - loop_start) * 1000.0)
 
@@ -290,6 +311,9 @@ class BacktestEngine:
                 results[f"p{int(p*100)}"] = q
             return results
 
+        total_bars = len(self._bars)
+        total_secs = max(1e-9, time.perf_counter() - run_start)
+        bars_per_sec = float(total_bars) / float(total_secs)
         counters = {
             "bars": len(self._bars),
             "orders_proposed": len(self._orders),
@@ -302,9 +326,10 @@ class BacktestEngine:
                 "avg": (sum(self._bar_loop_ms) / len(self._bar_loop_ms)) if self._bar_loop_ms else 0.0,
                 "max": max(self._bar_loop_ms) if self._bar_loop_ms else 0.0,
                 **_percentiles(self._bar_loop_ms, [0.5, 0.95]),
+                "bars_per_sec": bars_per_sec,
             }
             if self._bar_loop_ms
-            else {"count": 0, "avg": 0.0, "max": 0.0, "p50": 0.0, "p95": 0.0}
+            else {"count": 0, "avg": 0.0, "max": 0.0, "p50": 0.0, "p95": 0.0, "bars_per_sec": 0.0}
         )
 
         summary = {
@@ -325,6 +350,12 @@ class BacktestEngine:
                     "max_drawdown": metrics.max_drawdown,
                     "calmar": metrics.calmar,
                     "hit_rate": metrics.hit_rate,
+                    # Additional
+                    "turnover_notional": self._turnover_notional,
+                    "time_in_market_ratio": (
+                        float(self._time_in_market_bars) / float(len(self._equity)) if self._equity else 0.0
+                    ),
+                    "peak_gross_exposure": self._peak_gross_exposure,
                 }
             ),
             "observability": {
@@ -332,6 +363,7 @@ class BacktestEngine:
                 "timers": {
                     "bar_loop_ms": timer_stats,
                 },
+                "missing_bars_per_symbol": self._missing_bars_per_symbol,
             },
         }
         (out_base / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
