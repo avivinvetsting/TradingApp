@@ -214,6 +214,45 @@ End-of-Phase
 3. Reconcile positions; ensure no unintended exposure
 4. Archive logs and artifacts; file incident with timeline
 
+### Acceptance Test Procedures (ATPs)
+
+Phase 3 (Live paper connectivity)
+1. Prepare environment: `.env` set for IB host/port/client id; TWS/Gateway running with API enabled
+2. Dry‑run: `python -m trading live --config config.example.yaml --dry-run` → expect connect/disconnect success
+3. Live session (paper): start loop; verify heartbeats every 60s; observe counters increasing
+4. Induce disconnect (stop TWS for ~15s); restart TWS → system reconnects within ≤ 30s; subscriptions restored; no duplicate state
+5. Persistence: verify SQLite/Parquet snapshots created/readable; logs contain reconnect/backoff entries
+
+Phase 4 (First paper trade)
+1. Start live loop (paper) with tiny size policy; verify heartbeats and no errors
+2. Submit a small limit order (via strategy or manual trigger if available); verify order submission logged
+3. Verify fills ledger written; portfolio equity/PnL updated; commission applied
+4. Restart process; verify reconciliation (open orders/positions) and no duplication
+5. Generate EOD report; archive artifacts; validate completeness (orders, fills, PnL, positions)
+
+### Configuration Matrix (required keys)
+
+- `timeframe` ("1d"|"1h"|"1m") — normalized; validated
+- `symbols` (non‑empty list of tickers)
+- `data.cache_dir` (writable path)
+- `data.ib_host` / `data.ib_port` / `data.ib_client_id` (Phase 3+)
+- `risk.max_gross_exposure` (≥ 0), `risk.per_symbol_notional_cap` (≥ 0), `risk.daily_loss_cap` (≥ 0 or unset)
+- `execution.slippage_bps`, `execution.commission_fixed`
+
+### Release Checklist
+
+- Branch up to date with `main`; CI green (unit + integration)
+- Coverage ≥ 80%; lint/type/security scans pass
+- CHANGELOG/Decision Log updated; tag created if applicable
+- Runbook (`PHASE3_RUNBOOK.md`) reviewed; rollback plan verified
+
+### Glossary
+
+- Bar: OHLCV record for a fixed interval ending at `end` (UTC)
+- Heartbeat: periodic log indicating liveness with counters
+- Run ID: unique identifier (UUIDv4 or provided) for a run’s artifacts directory
+- Reconciliation: process of aligning local state with broker (orders, positions) after (re)connect
+
 ---
 
 ## Notes & Decisions (current)
