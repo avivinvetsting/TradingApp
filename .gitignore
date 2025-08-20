@@ -24,6 +24,7 @@ dist/
 /.tox/
 /.mypy_cache/
 /.ruff_cache/
+.hypothesis/
 
 # IDE/editor
 .vscode/
@@ -36,6 +37,8 @@ data/cache/
 *.feather
 *.sqlite
 reports/
+Makefile.backup
+
 
 # Logs
 logs/
