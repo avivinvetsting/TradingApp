@@ -21,7 +21,8 @@ dependencies = [
   "python-dotenv>=1.0,<2",
   "structlog>=24.1,<25",
   "tenacity>=8.5,<9",
-  "plotly>=5.20,<6",
+  "plotly==5.18.0",
+  "kaleido==0.2.1",
   "jinja2>=3.1,<4",
   "yfinance>=0.2.40,<0.3"
 ]
@@ -61,14 +62,18 @@ warn_return_any = true
 warn_unused_ignores = true
 ignore_missing_imports = true
 files = ["trading", "tests"]
-exclude = "(^venv_py311/|^venv/|^\\.venv/|^runs/|^data/|^build/|^dist/|^reports/)"
+exclude = "(^venv_py311/|^venv/|^\\.venv/|^runs/|^data/|^build/|^dist/|^reports/|^venv_wsl/)"
 
 [[tool.mypy.overrides]]
 module = ["trading.cli"]
 disable_error_code = ["misc", "no-untyped-def", "no-untyped-call"]
 
+[[tool.mypy.overrides]]
+module = ["trading.config.settings"]
+disable_error_code = ["misc", "no-any-return"]
+
 [tool.pytest.ini_options]
-addopts = "-q"
+addopts = "-q --cov-config=.coveragerc"
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
 markers = [

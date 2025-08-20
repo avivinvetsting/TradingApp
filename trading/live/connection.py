@@ -11,7 +11,9 @@ from tenacity import (
 )
 
 try:  # lazy import; only used in live mode
-    import ib_insync as ib
+    import ib_insync
+
+    ib: Any = ib_insync
 except Exception:  # pragma: no cover
     ib = None
 
@@ -38,7 +40,7 @@ class IBConnectionManager:
             self._logger = _logging.getLogger("trading.live.connection")
 
     # Exponential backoff with jitter and cap to avoid thundering herd
-    @retry(wait=wait_random_exponential(multiplier=1, max=30), stop=stop_after_attempt(5))  # type: ignore[misc]
+    @retry(wait=wait_random_exponential(multiplier=1, max=30), stop=stop_after_attempt(5))
     async def connect_with_backoff(self) -> None:
         timeout_seconds = 10.0
         try:

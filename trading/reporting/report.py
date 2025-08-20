@@ -52,7 +52,7 @@ def generate_html_report(run_dir: str | Path) -> Path:
     )
     fig_dd.update_layout(title="Drawdown", xaxis_title="Time", yaxis_title="Drawdown")
 
-    equity_html = fig_equity.to_html(full_html=False, include_plotlyjs="cdn")
+    equity_html = fig_equity.to_html(full_html=False, include_plotlyjs="inline")
     dd_html = fig_dd.to_html(full_html=False, include_plotlyjs=False)
 
     # Template

@@ -1,11 +1,14 @@
 PY=python
 PIP=pip
 
-.PHONY: setup dev test lint type fmt precommit backtest live report prune-runs ci
+.PHONY: setup bootstrap dev test lint type fmt precommit backtest live report bench-backtest prune-runs ci
 
 setup:
 	$(PY) -m pip install --upgrade pip
 	$(PIP) install -e .[dev]
+
+bootstrap:
+	bash scripts/setup_env.sh
 
 precommit:
 	pre-commit install
@@ -32,13 +35,13 @@ live:
 
 report:
 	@test -n "$(RUN)" || (echo "Usage: make report RUN=<run_id>" && exit 1)
-	$(PY) - <<'EOF'
-from trading.reporting.report import generate_html_report
-print(generate_html_report(f"runs/${RUN}"))
-EOF
+	$(PY) -c "from trading.reporting.report import generate_html_report; print(generate_html_report('runs/$(RUN)'))"
 
 prune-runs:
 	$(PY) -m trading ops prune runs --keep-days 30 --apply
 
 ci:
 	ruff check . && black --check . && mypy . && pytest --cov=trading --cov-report=term-missing --cov-fail-under=80
+
+bench-backtest:
+	$(PY) scripts/bench_backtest.py

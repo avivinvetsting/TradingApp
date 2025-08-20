@@ -63,9 +63,11 @@ class SimpleExecutionSimulator(ExecutionEngine):
         else:
             return None
 
-        # Apply participation cap if configured
-        if self.fill_policy.participation_cap is not None and bar_volume > 0:
+        # Apply participation cap if configured (zero volume or zero cap => no fill)
+        if self.fill_policy.participation_cap is not None:
             max_qty = int(bar_volume * self.fill_policy.participation_cap)
+            if max_qty <= 0:
+                return None
             qty = min(qty, max_qty)
             if qty <= 0:
                 return None
