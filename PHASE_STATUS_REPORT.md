@@ -136,6 +136,24 @@ Create these modules and minimal tests. Each step should include a small PR.
 - Live connectivity robustness
   - Action: implemented retry with jittered exponential backoff (`tenacity.wait_random_exponential`), 10s timeout around `connectAsync`, and structured logs for attempt/failure/success in `trading/live/connection.py`
 
+### Dependency management decisions (current)
+- Plotly export stability on WSL2
+  - Problem: Interactive HTML sometimes hung when loading plotly.js from CDN; Kaleido static export failed/hung under virtualenv paths with spaces (e.g., `/mnt/d/Investment Codes/...`).
+  - Actions:
+    - Changed HTML embedding to `include_plotlyjs="inline"` to remove network/CDN dependency.
+    - Pinned Plotly to `5.18.0` and Kaleido to `0.2.1` in both `pyproject.toml` and `requirements.txt` for known-stable behavior on WSL2.
+    - Verified Kaleido PNG export works from a venv located outside spaced paths (`~/.venvs/tradingapp`).
+  - Rationale: Avoid CDN hangs; Kaleido wrapper has path-quoting issues with spaces; the pinned versions are stable and sufficient for current reporting needs.
+
+- Single-environment policy and repo hygiene
+  - Consolidated to one Ubuntu/WSL virtualenv at `~/.venvs/tradingapp`.
+  - Removed legacy local venvs and archived unused helper files.
+  - Added `.gitignore` entries for `.hypothesis/` and `Makefile.backup`.
+
+- Strict no-upgrade policy (owner directive)
+  - Owner requirement: Do not upgrade packages under any circumstances without explicit approval.
+  - Implementation: Pinned versions for Plotly/Kaleido; no automated upgrade tooling suggested or configured. Future work will respect this policy and refrain from proposing or performing dependency version upgrades.
+
 ### Known gaps / problems not yet solved
 - Live trading core (market data stream, order submission/cancel, reconciliation) is not implemented
 - Live persistence layer (SQLite schemas, write/read cycle) is not implemented
