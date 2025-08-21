@@ -27,6 +27,10 @@ fmt:
 test:
 	pytest -q
 
+smoke:
+	$(PY) -m trading backtest --config config.example.yaml --run-id smoke --heartbeat-every 100000 --no-autodownload || true
+	@echo "Report: runs/smoke/reports/report.html"
+
 backtest:
 	$(PY) -m trading backtest --config config.example.yaml --run-id $$(date +%Y%m%d-%H%M%S)
 
@@ -45,3 +49,13 @@ ci:
 
 bench-backtest:
 	$(PY) scripts/bench_backtest.py
+
+open-latest-report:
+	@latest=$$(ls -td runs/*/ 2>/dev/null | head -n1); \
+	if [ -n "$$latest" ] && [ -f "$$latest/reports/report.html" ]; then \
+	  echo "Opening $$latest/reports/report.html"; \
+	  explorer.exe "$$(wslpath -w "$$latest/reports/report.html")" 2>/dev/null || true; \
+	  echo "Path: $$latest/reports/report.html"; \
+	else \
+	  echo "No reports found under runs/"; \
+	fi
