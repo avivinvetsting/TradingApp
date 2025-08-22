@@ -1,0 +1,8 @@
+[run]
+omit =
+  tests/*
+  */.venv/*
+  */venv/*
+  */venv_wsl/*
+  */.hypothesis/*
+  */archive/*

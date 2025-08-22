@@ -1,1 +1,45 @@
-* text=auto eol=lf
+# הגדרות כלליות - כל הקבצים הטקסטואליים יומרו אוטומטית
+* text=auto
+
+# קבצי Windows - שמור CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+
+# קבצי Python - שמור LF
+*.py text eol=lf
+*.pyi text eol=lf
+
+# קבצי תצורה - שמור LF
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.cfg text eol=lf
+*.ini text eol=lf
+
+# קבצי תיעוד - שמור LF
+*.md text eol=lf
+*.txt text eol=lf
+*.rst text eol=lf
+
+# קבצי HTML/JavaScript - שמור LF
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.json text eol=lf
+
+# קבצי Makefile - שמור LF (חשוב!)
+Makefile text eol=lf
+*.mk text eol=lf
+
+# קבצים בינאריים - אל תהמר
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.pyc binary
+*.pyo binary
+*.pyd binary
+*.parquet binary
+*.pickle binary
+*.pkl binary

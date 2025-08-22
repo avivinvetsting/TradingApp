@@ -5,9 +5,9 @@ symbols: ["SPY", "QQQ"]
 data:
   source: "ib"
   cache_dir: "./data/cache"
-  ib_host: "172.22.0.1" # שנה ל-IP של Windows
-  ib_port: 4002 # השאר 4002 (IB Gateway)
-  ib_client_id: 1003
+  ib_host: "127.0.0.1"
+  ib_port: 7497
+  ib_client_id: 1
 
 risk:
   max_gross_exposure: 100000
@@ -27,6 +27,6 @@ strategy:
 trade:
   data:
     ib:
-      host: "172.22.0.1" # שנה ל-IP של Windows
-      port: 4002 # השאר 4002 (IB Gateway)
-      client_id: 1003
+      host: "127.0.0.1"
+      port: 7497
+      client_id: 1

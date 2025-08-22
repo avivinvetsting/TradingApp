@@ -20,6 +20,7 @@ dist/
 
 # Testing
 .coverage*
+!.coveragerc
 .pytest_cache/
 /.tox/
 /.mypy_cache/
@@ -38,6 +39,7 @@ data/cache/
 *.sqlite
 reports/
 Makefile.backup
+archive/
 
 
 # Logs

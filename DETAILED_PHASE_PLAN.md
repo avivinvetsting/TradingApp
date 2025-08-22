@@ -70,8 +70,8 @@ Use this ordered checklist to drive implementation. Check items in sequence.
 1. [x] Inject `Clock.now_utc()` and remove ad‑hoc `datetime.now` for determinism
 1. [x] Record bars/sec and per‑symbol missing‑bar counters in `summary.json` and report
 1. [x] Add turnover, time‑in‑market, and peak gross exposure to metrics/report
-1. [ ] Add property‑based tests (portfolio invariants; simulator edge cases)
-1. [ ] Add `make bench-backtest` with SLA (< 60s SPY/QQQ daily)
+1. [x] Add property‑based tests (portfolio invariants; simulator edge cases)
+1. [x] Add `make bench-backtest` with SLA (< 60s SPY/QQQ daily)
 
 Note: Items 1–7 are implemented; items 8–13 are optional polish to schedule before Phase 3 if time permits.
 
