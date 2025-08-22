@@ -2,9 +2,9 @@
 
 Use these checklists to track progress. Check items as you complete them. Capture one-way-door decisions in `PROJECT_PLAN.md`.
 
-______________________________________________________________________
+---
 
-## Phase 1 — Core Infrastructure & Foundation (Week 1)
+## Phase 1 — Core Infrastructure & Foundation
 
 - [x] Objective agreed: scaffold with contracts, config, CLI, logging, CI
 - [x] Python 3.11 venv ready; repo initialized; CI enabled
@@ -20,7 +20,7 @@ ______________________________________________________________________
 - [x] Acceptance: CLI help shows; config resolves; registry lists; CI green; reproducible local runs
 - [x] Tests: unit for config/registry/models; lint/type gates pass
 
-______________________________________________________________________
+---
 
 ## Phase 2 — Backtester MVP (Weeks 2–3)
 
@@ -43,7 +43,7 @@ ______________________________________________________________________
 - [x] Tests: unit (portfolio/costs/risk/CA); integration (fixture backtest); regression (summary snapshot)
 - [x] Observability: counters for bars/orders; latency timers
 
-______________________________________________________________________
+---
 
 ## Chronological Task Checklist — Phases 1 & 2
 
@@ -75,7 +75,7 @@ Use this ordered checklist to drive implementation. Check items in sequence.
 
 Note: Items 1–7 are implemented; items 8–13 are optional polish to schedule before Phase 3 if time permits.
 
-______________________________________________________________________
+---
 
 ## Phase 3 — Live Data & Paper Account Integration (Week 4)
 
@@ -119,7 +119,7 @@ ______________________________________________________________________
 - Export metrics via Prometheus/OpenTelemetry
 - Integrate alerting channel (e.g., Slack/Email) for failures or missed heartbeats
 
-______________________________________________________________________
+---
 
 ## Phase 4 — First Paper Trade (Week 5)
 
@@ -151,7 +151,7 @@ ______________________________________________________________________
 - Additional order types (stop/stop‑limit) and policies (convert on timeout)
 - Daily loss cap per‑instrument; flat‑at‑close rule
 
-______________________________________________________________________
+---
 
 ## Phase 5 — Stretch Enhancements & Hardening (Weeks 6–7, optional)
 
@@ -163,7 +163,7 @@ ______________________________________________________________________
 - [ ] Acceptance: performance budgets met; toggles documented; risk policies effective
 - [ ] Tests: performance baselines; scenario tests for new order types/risk
 
-______________________________________________________________________
+---
 
 ## Cross-Phase Checklists
 
@@ -287,7 +287,7 @@ Phase 4 (First paper trade)
 - Run ID: unique identifier (UUIDv4 or provided) for a run’s artifacts directory
 - Reconciliation: process of aligning local state with broker (orders, positions) after (re)connect
 
-______________________________________________________________________
+---
 
 ## Notes & Decisions (current)
 
@@ -297,7 +297,7 @@ ______________________________________________________________________
 - Retention: backtests short (e.g., 7–14 days), live runs longer (e.g., 90+ days); manage via `python -m trading ops prune`
 - TWS connection is required starting Phase 3 (live integration); not needed for Phase 1–2
 
-______________________________________________________________________
+---
 
 ## Phase 2 — Accomplishments
 
