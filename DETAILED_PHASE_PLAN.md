@@ -4,7 +4,7 @@ Use these checklists to track progress. Check items as you complete them. Captur
 
 ---
 
-## Phase 1 — Core Infrastructure & Foundation
+## Phase 1 — Core Infrastructure & Foundation (week 1)
 
 - [x] Objective agreed: scaffold with contracts, config, CLI, logging, CI
 - [x] Python 3.11 venv ready; repo initialized; CI enabled
