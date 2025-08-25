@@ -36,7 +36,7 @@ dev = [
   "mypy>=1.10,<2",
   "ruff>=0.5,<1",
   "black>=24.4,<25",
-  "pre-commit>=3.7,<4",
+  "pre-commit>=3.7,<5",
   "bandit>=1.7,<2",
   "pip-audit>=2.7,<3"
 ]
